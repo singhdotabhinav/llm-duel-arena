@@ -1,0 +1,33 @@
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;padding:0;color:#0f172a;background:#f8fafc}
+header{padding:16px 20px;background:#0f172a;color:#fff}
+main{padding:20px;max-width:1200px;margin:0 auto}
+.controls{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
+.controls label{display:block;font-size:12px;color:#334155;margin-bottom:6px}
+.controls select{padding:8px}
+.controls .buttons{display:flex;gap:8px}
+.controls button{padding:8px 12px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer}
+.controls button:hover{background:#f1f5f9}
+.board-and-log{display:grid;grid-template-columns:1fr 360px;gap:20px}
+.board-wrap{display:grid;grid-template-rows:auto 1fr auto auto;gap:8px;align-content:start}
+.captured{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;--capSize:24px}
+.captured .cap{position:static;display:inline-block;font-size:var(--capSize);line-height:1}
+.captured .cap.white{color:#111827}
+.captured .cap.black{color:#111827}
+.counts{display:flex;gap:12px;color:#475569;font-size:13px}
+.board{width:100%;max-width:640px;aspect-ratio:1/1;border:1px solid #cbd5e1;border-radius:8px;position:relative;background:#e5e7eb;overflow:hidden}
+.board-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}
+.square{position:relative;display:flex;align-items:flex-start;justify-content:flex-start;font-size:12px}
+.square.light{background:#f8fafc}
+.square.dark{background:#cbd5e1}
+.square .coord{position:absolute;left:4px;top:2px;font-size:10px;color:#94a3b8;opacity:.6;pointer-events:none}
+.highlight{outline:3px solid #f59e0b;outline-offset:-3px}
+.pieces{position:absolute;inset:0}
+.piece{position:absolute;transition:transform .25s ease, opacity .2s ease;font-size:min(7.5vmin,48px);line-height:1}
+.piece.white{color:#111827}
+.piece.black{color:#111827}
+.legend{position:absolute;left:6px;bottom:6px;color:#64748b;font-size:12px}
+.log{border:1px solid #e2e8f0;border-radius:8px;padding:10px;background:#fff;height:640px;overflow:auto}
+.log h3{margin:6px 0 10px 0}
+#log{list-style:none;padding:0;margin:0}
+#log li{padding:6px 4px;border-bottom:1px dashed #e2e8f0;font-size:14px}
+@media (max-width:960px){.board-and-log{grid-template-columns:1fr}}

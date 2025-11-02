@@ -1,0 +1,37 @@
+from pydantic import BaseModel, Field
+from typing import Optional, List, Literal, Dict
+
+Side = Literal["white", "black"]
+
+
+class CreateGameRequest(BaseModel):
+    white_model: Optional[str] = None
+    black_model: Optional[str] = None
+    fen: Optional[str] = None
+
+
+class MoveRequest(BaseModel):
+    move: str = Field(..., description="Move string in UCI format (e2e4)")
+
+
+class MoveRecord(BaseModel):
+    ply: int
+    side: Side
+    move_uci: str
+    move_san: Optional[str] = None
+    model_name: Optional[str] = None
+    error: Optional[str] = None
+    from_square: Optional[str] = None
+    to_square: Optional[str] = None
+    captured_piece: Optional[str] = None
+
+
+class GameState(BaseModel):
+    game_id: str
+    fen: str
+    turn: Side
+    over: bool
+    result: Dict[str, str]
+    moves: List[MoveRecord] = []
+    white_model: Optional[str] = None
+    black_model: Optional[str] = None

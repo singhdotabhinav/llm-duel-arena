@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>{{ app_name }}</h1>
+  </header>
+  <main>
+    <section class="controls">
+      <div>
+        <label>White Model</label>
+        <select id="white-model">
+          <option value="{{ default_white }}">{{ default_white }}</option>
+          <option value="ollama:llama3.1">ollama:llama3.1</option>
+          <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
+          <option value="ollama:phi3">ollama:phi3</option>
+        </select>
+      </div>
+      <div>
+        <label>Black Model</label>
+        <select id="black-model">
+          <option value="{{ default_black }}">{{ default_black }}</option>
+          <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
+          <option value="ollama:llama3.1">ollama:llama3.1</option>
+          <option value="ollama:phi3">ollama:phi3</option>
+        </select>
+      </div>
+      <div class="buttons">
+        <button id="start">Start</button>
+        <button id="reset">Reset</button>
+        <button id="pause">Pause</button>
+        <button id="resume">Resume</button>
+      </div>
+    </section>
+
+    <section class="board-and-log">
+      <div class="board-wrap">
+        <div id="captured-black" class="captured captured-top" aria-label="Captured by White"></div>
+        <div id="board" class="board">
+          <div id="board-grid" class="board-grid"></div>
+          <div id="pieces" class="pieces"></div>
+          <div class="legend">White bottom • Algebraic a1 bottom-left</div>
+        </div>
+        <div id="captured-white" class="captured captured-bottom" aria-label="Captured by Black"></div>
+        <div class="counts">
+          <span id="white-count">White: 16</span>
+          <span id="black-count">Black: 16</span>
+        </div>
+      </div>
+      <div class="log">
+        <h3>Game Log</h3>
+        <ul id="log"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

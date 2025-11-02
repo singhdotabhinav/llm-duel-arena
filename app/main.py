@@ -15,7 +15,18 @@ app.include_router(games.router, prefix="/api/games", tags=["games"])
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def landing(request: Request):
+    return templates.TemplateResponse(
+        "landing.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+        },
+    )
+
+
+@app.get("/game", response_class=HTMLResponse)
+async def game(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {
@@ -23,6 +34,17 @@ async def index(request: Request):
             "app_name": settings.app_name,
             "default_white": settings.default_white_model,
             "default_black": settings.default_black_model,
+        },
+    )
+
+
+@app.get("/games", response_class=HTMLResponse)
+async def games_list(request: Request):
+    return templates.TemplateResponse(
+        "games_list.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
         },
     )
 

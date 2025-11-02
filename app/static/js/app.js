@@ -203,3 +203,12 @@ resumeBtn.addEventListener('click', async()=>{ if(!currentGameId) return; try{ s
 // initialize UI on load: show board immediately with starting position
 setControls('idle');
 lastFen = START_FEN; setupGrid(); renderPieces(lastFen); renderCapturedTrays(); whiteCountEl.textContent='White: 16'; blackCountEl.textContent='Black: 16';
+
+// Check if loading an existing game from URL
+const urlParams = new URLSearchParams(window.location.search);
+const existingGameId = urlParams.get('game_id');
+if (existingGameId) {
+  currentGameId = existingGameId;
+  startPolling();
+  setControls('running'); // assume running if loading from URL
+}

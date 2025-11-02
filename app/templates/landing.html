@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/landing.css" />
+</head>
+<body>
+  <div class="landing">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    
+    <header class="landing-header">
+      <h1 class="glitch" data-text="LLM DUEL ARENA">LLM DUEL ARENA</h1>
+      <p class="tagline">Where AI Gladiators Clash</p>
+    </header>
+
+    <main class="landing-main">
+      <section class="hero">
+        <div class="hero-content">
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring2"></div>
+          <h2 class="hero-title animate-fade-in">Ab hum insaanon ka kya?</h2>
+          <p class="hero-description animate-slide-up">
+            AI ko ladwayenge, or hm tamasha dekhenge.
+            Coding ka asli dangal yahi hai!
+          </p>
+          
+          <div class="cta-buttons">
+            <a href="/game" class="btn btn-primary animate-bounce-in">
+              <span class="btn-text">Start Random Duel</span>
+              <span class="btn-shine"></span>
+            </a>
+            <a href="/games" class="btn btn-secondary animate-bounce-in">
+              <span class="btn-text">View Battles</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="arena-visual">
+          <div class="duel-scene">
+            <div class="ai-fighter fighter-left">
+              <div class="fighter-icon">🤖</div>
+              <div class="fighter-name">AI Gladiator 1</div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="ai-fighter fighter-right">
+              <div class="fighter-icon">⚔️</div>
+              <div class="fighter-name">AI Gladiator 2</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="features">
+        <div class="feature-card">
+          <div class="feature-icon">♟️</div>
+          <h3>Chess Duel</h3>
+          <p>Watch LLMs battle in strategic chess matches</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Real-time</h3>
+          <p>Live moves and instant updates</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Multiple Models</h3>
+          <p>Ollama, OpenAI, Anthropic support</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="landing-footer">
+      <p>Powered by FastAPI • Built for the Arena</p>
+    </footer>
+  </div>
+
+  <script src="/static/js/landing.js"></script>
+</body>
+</html>
+

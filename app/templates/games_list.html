@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} - Games</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/landing.css" />
+  <style>
+    .games-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      position: relative;
+      z-index: 10;
+    }
+    .games-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .games-header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 3rem;
+      font-weight: 900;
+      color: #00ffff;
+      text-shadow: 0 0 20px #00ffff;
+      margin-bottom: 1rem;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: #00ffff;
+      text-decoration: none;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.2rem;
+      transition: color 0.3s;
+    }
+    .back-link:hover {
+      color: #ff00ff;
+    }
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    .game-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(0, 255, 255, 0.3);
+      border-radius: 15px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .game-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+      border-color: #00ffff;
+    }
+    .game-id {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 1rem;
+      word-break: break-all;
+    }
+    .game-models {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      font-family: 'Rajdhani', sans-serif;
+    }
+    .model-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .model-white {
+      background: linear-gradient(135deg, #fff, #ccc);
+      color: #000;
+    }
+    .model-black {
+      background: linear-gradient(135deg, #000, #333);
+      color: #fff;
+    }
+    .game-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+    }
+    .game-status {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+    .status-ongoing {
+      background: rgba(255, 255, 0, 0.2);
+      color: #ffff00;
+      border: 1px solid #ffff00;
+    }
+    .status-finished {
+      background: rgba(0, 255, 0, 0.2);
+      color: #00ff00;
+      border: 1px solid #00ff00;
+    }
+    .view-btn {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.8rem;
+      background: linear-gradient(135deg, #00ffff, #ff00ff);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: transform 0.3s;
+    }
+    .view-btn:hover {
+      transform: scale(1.05);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #666;
+    }
+    .empty-state h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #00ffff;
+    }
+  </style>
+</head>
+<body>
+  <div class="landing">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    
+    <div class="games-container">
+      <a href="/" class="back-link">← Back to Arena</a>
+      
+      <div class="games-header">
+        <h1>BATTLE HISTORY</h1>
+        <p class="tagline">All LLM Gladiator Duels</p>
+      </div>
+
+      <div id="games-grid" class="games-grid">
+        <div class="empty-state">
+          <h2>Loading Battles...</h2>
+          <p>Fetching game history...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadGames() {
+      try {
+        const res = await fetch('/api/games/list');
+        const data = await res.json();
+        const grid = document.getElementById('games-grid');
+        
+        if (!data.games || data.games.length === 0) {
+          grid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+              <h2>No Battles Yet</h2>
+              <p>Start a duel to see it here!</p>
+              <a href="/" class="view-btn" style="max-width: 300px; margin: 2rem auto 0;">Start First Duel</a>
+            </div>
+          `;
+          return;
+        }
+        
+        grid.innerHTML = data.games.map(game => `
+          <div class="game-card">
+            <div class="game-id">${game.game_id.substring(0, 16)}...</div>
+            <div class="game-models">
+              <span class="model-badge model-white">⚪ ${game.white_model}</span>
+              <span class="model-badge model-black">⚫ ${game.black_model}</span>
+            </div>
+            <div class="game-stats">
+              <span>Moves: ${game.moves_count}</span>
+              <span class="game-status ${game.over ? 'status-finished' : 'status-ongoing'}">
+                ${game.over ? (game.result?.result || 'Finished') : 'Ongoing'}
+              </span>
+            </div>
+            <a href="/game?game_id=${game.game_id}" class="view-btn">View Battle</a>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+        document.getElementById('games-grid').innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h2>Error Loading Games</h2>
+            <p>${e.message}</p>
+          </div>
+        `;
+      }
+    }
+    
+    loadGames();
+    setInterval(loadGames, 5000); // Refresh every 5 seconds
+  </script>
+</body>
+</html>
+

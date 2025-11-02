@@ -17,6 +17,7 @@ let pollTimer = null;
 let lastRenderedPly = 0;
 let lastFen = null;
 let lastMoveUci = null;
+let currentGameType = 'chess'; // Track current game type
 let capturedByWhite = []; // black pieces captured
 let capturedByBlack = []; // white pieces captured
 
@@ -30,17 +31,40 @@ const NAME = { 'P':'pawn','N':'knight','B':'bishop','R':'rook','Q':'queen','K':'
                'p':'pawn','n':'knight','b':'bishop','r':'rook','q':'queen','k':'king'};
 
 function setControls(state){
+  const modelSelector = document.getElementById('model-selector');
+  const modelDisplay = document.getElementById('model-display');
+  const whiteDisplay = document.getElementById('white-display');
+  const blackDisplay = document.getElementById('black-display');
+  
   if(state==='busy'){
     startBtn.disabled = true; resetBtn.disabled = true; pauseBtn.disabled = true; resumeBtn.disabled = true; return;
   }
   if(state==='idle'){
-    startBtn.disabled = false; resetBtn.disabled = true; pauseBtn.disabled = true; resumeBtn.disabled = true; return;
+    startBtn.disabled = false; resetBtn.disabled = true; pauseBtn.disabled = true; resumeBtn.disabled = true;
+    if(modelSelector) modelSelector.style.display = 'flex';
+    if(modelDisplay) modelDisplay.style.display = 'none';
+    return;
   }
   if(state==='running'){
-    startBtn.disabled = true; resetBtn.disabled = false; pauseBtn.disabled = false; resumeBtn.disabled = true; return;
+    startBtn.disabled = true; resetBtn.disabled = false; pauseBtn.disabled = false; resumeBtn.disabled = true;
+    // Show model display, hide selectors
+    if(modelSelector) modelSelector.style.display = 'none';
+    if(modelDisplay){
+      modelDisplay.style.display = 'flex';
+      if(whiteDisplay) whiteDisplay.textContent = whiteSel.value;
+      if(blackDisplay) blackDisplay.textContent = blackSel.value;
+    }
+    return;
   }
   if(state==='paused'){
     startBtn.disabled = true; resetBtn.disabled = false; pauseBtn.disabled = true; resumeBtn.disabled = false;
+    // Keep models displayed when paused
+    if(modelSelector) modelSelector.style.display = 'none';
+    if(modelDisplay){
+      modelDisplay.style.display = 'flex';
+      if(whiteDisplay) whiteDisplay.textContent = whiteSel.value;
+      if(blackDisplay) blackDisplay.textContent = blackSel.value;
+    }
   }
 }
 
@@ -155,6 +179,65 @@ function startPolling(){ stopPolling(); pollTimer = setInterval(async()=>{ if(!c
 function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
 
 function renderState(state){
+  // Update game type if changed
+  if(state.game_type && state.game_type !== currentGameType){
+    currentGameType = state.game_type;
+  }
+  
+  const gameState = state.state || state.fen; // Support both field names
+  
+  // Handle Rock Paper Scissors
+  if(currentGameType === 'rock_paper_scissors'){
+    if(state.moves && state.moves.length){
+      const newMoves = state.moves.filter(m => m.ply > lastRenderedPly).sort((a,b)=>a.ply-b.ply);
+      for(const m of newMoves){
+        const sideName = m.side;
+        const choice = m.move_uci.toLowerCase();
+        addLog(`Move #${m.ply}: ${sideName} chose ${choice}`);
+        lastRenderedPly = Math.max(lastRenderedPly, m.ply);
+      }
+    }
+    renderRPSBoard(gameState);
+    if(state.over){
+      const result = state.result;
+      if(result.winner){
+        addLog(`Game over: ${result.winner} wins! (${result.result})`);
+      } else {
+        addLog(`Game over: Draw (${result.result})`);
+      }
+      stopPolling();
+      setControls('idle');
+    }
+    return;
+  }
+  
+  // Handle Tic Tac Toe
+  if(currentGameType === 'tic_tac_toe'){
+    if(state.moves && state.moves.length){
+      const newMoves = state.moves.filter(m => m.ply > lastRenderedPly).sort((a,b)=>a.ply-b.ply);
+      for(const m of newMoves){
+        const sideName = m.side;
+        const movePos = m.move_uci;
+        const symbol = sideName === 'white' ? 'X' : 'O';
+        addLog(`Move #${m.ply}: ${sideName} plays ${symbol} at ${movePos}`);
+        lastRenderedPly = Math.max(lastRenderedPly, m.ply);
+      }
+    }
+    renderTTTBoard(gameState);
+    if(state.over){
+      const result = state.result;
+      if(result.winner){
+        addLog(`Game over: ${result.winner} wins! (${result.result})`);
+      } else {
+        addLog(`Game over: Draw (${result.result})`);
+      }
+      stopPolling();
+      setControls('idle');
+    }
+    return;
+  }
+  
+  // Chess rendering
   if(state.moves && state.moves.length){
     const newMoves = state.moves.filter(m => m.ply > lastRenderedPly).sort((a,b)=>a.ply-b.ply);
     for(const m of newMoves){
@@ -172,28 +255,229 @@ function renderState(state){
       lastRenderedPly = Math.max(lastRenderedPly, m.ply); lastMoveUci = m.move_uci;
     }
   }
-  setupGrid(); renderPieces(state.fen); lastFen = state.fen; renderCapturedTrays();
-  const itemsNow = fenToPieces(state.fen); whiteCountEl.textContent = `White: ${itemsNow.filter(i=>/[A-Z]/.test(i.piece)).length}`; blackCountEl.textContent = `Black: ${itemsNow.filter(i=>/[a-z]/.test(i.piece)).length}`;
+  setupGrid(); renderPieces(gameState); lastFen = gameState; renderCapturedTrays();
+  const itemsNow = fenToPieces(gameState); whiteCountEl.textContent = `White: ${itemsNow.filter(i=>/[A-Z]/.test(i.piece)).length}`; blackCountEl.textContent = `Black: ${itemsNow.filter(i=>/[a-z]/.test(i.piece)).length}`;
   if(state.over){ addLog(`Game over: ${state.result.status} ${state.result.result || ''}`); stopPolling(); setControls('idle'); }
+}
+
+function renderRPSBoard(stateStr){
+  const boardEl = document.getElementById('board');
+  const gridEl = document.getElementById('board-grid');
+  gridEl.innerHTML = '';
+  gridEl.className = 'board-grid rps-grid';
+  boardEl.style.aspectRatio = '1/1';
+  
+  // Parse state: format is 'white_choice,black_choice'
+  const parts = (stateStr || '').split(',');
+  const whiteChoice = parts[0] || null;
+  const blackChoice = parts[1] || null;
+  
+  // Create RPS display - two large choice areas
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '20px';
+  container.style.width = '100%';
+  container.style.height = '100%';
+  container.style.justifyContent = 'center';
+  container.style.alignItems = 'center';
+  
+  // White choice
+  const whiteCard = document.createElement('div');
+  whiteCard.className = 'rps-card white-rps';
+  whiteCard.innerHTML = `
+    <div class="rps-label">⚪ White</div>
+    <div class="rps-choice">${whiteChoice ? getRPSEmoji(whiteChoice) + ' ' + whiteChoice.toUpperCase() : 'Waiting...'}</div>
+  `;
+  
+  // VS separator
+  const vsDiv = document.createElement('div');
+  vsDiv.className = 'rps-vs';
+  vsDiv.textContent = 'VS';
+  
+  // Black choice
+  const blackCard = document.createElement('div');
+  blackCard.className = 'rps-card black-rps';
+  blackCard.innerHTML = `
+    <div class="rps-label">⚫ Black</div>
+    <div class="rps-choice">${blackChoice ? getRPSEmoji(blackChoice) + ' ' + blackChoice.toUpperCase() : 'Waiting...'}</div>
+  `;
+  
+  container.appendChild(whiteCard);
+  container.appendChild(vsDiv);
+  container.appendChild(blackCard);
+  gridEl.appendChild(container);
+  
+  // Hide pieces layer, captured trays, and counts for RPS
+  document.getElementById('pieces').innerHTML = '';
+  const capWhite = document.getElementById('captured-white');
+  const capBlack = document.getElementById('captured-black');
+  const counts = document.querySelector('.counts');
+  if(capWhite) capWhite.style.display = 'none';
+  if(capBlack) capBlack.style.display = 'none';
+  if(counts) counts.style.display = 'none';
+  
+  // Update legend for RPS
+  const legend = document.querySelector('.legend');
+  if(legend){
+    legend.textContent = 'Rock beats Scissors • Scissors beats Paper • Paper beats Rock';
+    legend.style.display = 'block';
+  }
+}
+
+function getRPSEmoji(choice){
+  choice = choice.toLowerCase();
+  if(choice === 'rock') return '🪨';
+  if(choice === 'paper') return '📄';
+  if(choice === 'scissors') return '✂️';
+  return '';
+}
+
+function renderTTTBoard(stateStr){
+  // Parse TTT state from backend: format is "row1-row2-row3" with empty cells as empty strings
+  const boardEl = document.getElementById('board');
+  const gridEl = document.getElementById('board-grid');
+  gridEl.innerHTML = '';
+  gridEl.className = 'board-grid ttt-grid';
+  boardEl.style.aspectRatio = '1/1';
+  
+  // Parse state string - TTTEngine.get_state() returns cells joined by '-'
+  let cells = [];
+  if(stateStr && stateStr.includes('-')){
+    // Split by '-' but we need to handle empty cells correctly
+    // Format from TTTEngine: cells are stored row by row, joined by '-'
+    // But empty cells might be missing, so we parse differently
+    const parts = stateStr.split('-');
+    // Reconstruct 3x3 board
+    for(let i=0; i<9; i++){
+      if(i < parts.length && parts[i]){
+        cells.push(parts[i]);
+      } else {
+        cells.push(''); // Empty cell
+      }
+    }
+  } else {
+    // Try direct parsing: might be a flat string like "X O  X  O "
+    const clean = (stateStr || '').replace(/[^XO\s]/g, '').trim();
+    for(let i=0; i<9; i++){
+      cells.push(clean[i] || '');
+    }
+  }
+  
+  // Create 3x3 grid
+  for(let r=0; r<3; r++){
+    for(let c=0; c<3; c++){
+      const idx = r*3 + c;
+      const cell = cells[idx] || '';
+      const sq = document.createElement('div');
+      sq.className = `square ttt-square ${(r+c)%2===0?'light':'dark'}`;
+      sq.style.display = 'flex';
+      sq.style.alignItems = 'center';
+      sq.style.justifyContent = 'center';
+      sq.style.fontSize = 'min(15vmin, 80px)';
+      sq.style.fontWeight = 'bold';
+      sq.textContent = cell;
+      if(cell === 'X'){
+        sq.style.color = '#111827';
+      } else if(cell === 'O'){
+        sq.style.color = '#475569';
+      } else {
+        sq.style.color = 'transparent';
+      }
+      gridEl.appendChild(sq);
+    }
+  }
+  
+  // Hide pieces layer for TTT
+  document.getElementById('pieces').innerHTML = '';
+  // Hide captured trays and counts for TTT
+  const capWhite = document.getElementById('captured-white');
+  const capBlack = document.getElementById('captured-black');
+  const counts = document.querySelector('.counts');
+  if(capWhite) capWhite.style.display = 'none';
+  if(capBlack) capBlack.style.display = 'none';
+  if(counts) counts.style.display = 'none';
+  
+  // Show legend for TTT
+  const legend = document.querySelector('.legend');
+  if(legend){
+    legend.textContent = 'X = White (Player 1) • O = Black (Player 2)';
+    legend.style.display = 'block';
+  }
 }
 
 window.addEventListener('resize', ()=>{ if(lastFen){ setupGrid(); renderPieces(lastFen); renderCapturedTrays(); } });
 
 startBtn.addEventListener('click', async()=>{
   try{
-    setControls('busy'); const body = {white_model:whiteSel.value, black_model:blackSel.value};
+    setControls('busy');
+    
+    // If game already exists, check if it's finished
+    if(currentGameId){
+      const currentState = await api(`/${currentGameId}`);
+      
+      // If game is over, create a new game instead of restarting
+      if(currentState.over){
+        clearLog();
+        lastRenderedPly = 0;
+        capturedByWhite = []; capturedByBlack = [];
+        const body = {game_type: currentGameType, white_model:whiteSel.value, black_model:blackSel.value};
+        const state = await api('/', {method:'POST', body: JSON.stringify(body)});
+        currentGameId = state.game_id; currentGameType = state.game_type || currentGameType;
+        lastFen = state.state || state.fen; lastMoveUci = null;
+        capWhiteEl.innerHTML=''; capBlackEl.innerHTML='';
+        if(currentGameType === 'tic_tac_toe'){
+          renderTTTBoard(state.state || state.fen);
+        } else {
+          setupGrid(); renderPieces(state.state || state.fen); renderCapturedTrays();
+        }
+        addLog(`Started new ${currentGameType} game ${currentGameId}`);
+        await api(`/${currentGameId}/start_autoplay`, {method:'POST', body: JSON.stringify(body)});
+        addLog('Autoplay started'); startPolling(); setControls('running');
+        return;
+      }
+      
+      // Game exists and is not over, just start autoplay
+      const body = {white_model:whiteSel.value, black_model:blackSel.value};
+      await api(`/${currentGameId}/start_autoplay`, {method:'POST', body: JSON.stringify(body)});
+      addLog('Autoplay started'); startPolling(); setControls('running');
+      return;
+    }
+    
+    // Create new game (use currentGameType which was set from URL or defaults to chess)
+    clearLog();
+    lastRenderedPly = 0;
+    capturedByWhite = []; capturedByBlack = [];
+    const body = {game_type: currentGameType, white_model:whiteSel.value, black_model:blackSel.value};
     const state = await api('/', {method:'POST', body: JSON.stringify(body)});
-    currentGameId = state.game_id; lastRenderedPly = 0; lastFen = state.fen; lastMoveUci = null; capturedByWhite = []; capturedByBlack = [];
-    capWhiteEl.innerHTML=''; capBlackEl.innerHTML=''; clearLog(); setupGrid(); renderPieces(state.fen); renderCapturedTrays();
-    addLog(`Started game ${currentGameId}`); await api(`/${currentGameId}/start_autoplay`, {method:'POST', body: JSON.stringify(body)});
+    currentGameId = state.game_id; currentGameType = state.game_type || 'chess';
+    lastFen = state.state || state.fen; lastMoveUci = null;
+    capWhiteEl.innerHTML=''; capBlackEl.innerHTML='';
+    if(currentGameType === 'rock_paper_scissors'){
+      renderRPSBoard(state.state || state.fen);
+    } else if(currentGameType === 'tic_tac_toe'){
+      renderTTTBoard(state.state || state.fen);
+    } else {
+      setupGrid(); renderPieces(state.state || state.fen); renderCapturedTrays();
+    }
+    addLog(`Started ${currentGameType} game ${currentGameId}`);
+    await api(`/${currentGameId}/start_autoplay`, {method:'POST', body: JSON.stringify(body)});
     addLog('Autoplay started'); startPolling(); setControls('running');
   }catch(e){ console.error(e); addLog('Failed to start'); setControls('idle'); }
 });
 
 resetBtn.addEventListener('click', async()=>{
   if(!currentGameId) return; try{ setControls('busy'); const state = await api(`/${currentGameId}/reset`, {method:'POST'});
-    lastRenderedPly = 0; lastFen = state.fen; lastMoveUci = null; capturedByWhite = []; capturedByBlack = []; capWhiteEl.innerHTML=''; capBlackEl.innerHTML='';
-    clearLog(); setupGrid(); renderPieces(state.fen); renderCapturedTrays(); addLog(`Reset game ${state.game_id}`); setControls('idle');
+    lastRenderedPly = 0; lastFen = state.state || state.fen; lastMoveUci = null; capturedByWhite = []; capturedByBlack = []; capWhiteEl.innerHTML=''; capBlackEl.innerHTML='';
+    clearLog();
+    if(state.game_type === 'rock_paper_scissors'){
+      renderRPSBoard(state.state || state.fen);
+    } else if(state.game_type === 'tic_tac_toe'){
+      renderTTTBoard(state.state || state.fen);
+    } else {
+      setupGrid(); renderPieces(state.state || state.fen); renderCapturedTrays();
+    }
+    addLog(`Reset ${state.game_type || 'game'} ${state.game_id}`); setControls('idle');
   }catch(e){ console.error(e); addLog('Failed to reset'); setControls('idle'); }
 });
 
@@ -209,6 +493,59 @@ const urlParams = new URLSearchParams(window.location.search);
 const existingGameId = urlParams.get('game_id');
 if (existingGameId) {
   currentGameId = existingGameId;
-  startPolling();
-  setControls('running'); // assume running if loading from URL
+  // Fetch game state to determine game type
+  api(`/${existingGameId}`).then(state => {
+    if(state.game_type){
+      currentGameType = state.game_type;
+      lastRenderedPly = 0;
+      lastFen = state.state || state.fen;
+      
+      if(state.game_type === 'rock_paper_scissors'){
+        renderRPSBoard(state.state || state.fen);
+      } else if(state.game_type === 'tic_tac_toe'){
+        renderTTTBoard(state.state || state.fen);
+      } else {
+        setupGrid();
+        renderPieces(state.state || state.fen);
+        renderCapturedTrays();
+      }
+      
+      // Log existing moves
+      if(state.moves && state.moves.length){
+        state.moves.forEach(m => {
+          if(state.game_type === 'tic_tac_toe'){
+            const symbol = m.side === 'white' ? 'X' : 'O';
+            addLog(`Move #${m.ply}: ${m.side} plays ${symbol} at ${m.move_uci}`);
+          } else {
+            addLog(`Move #${m.ply}: ${m.side} ${m.move_uci}`);
+          }
+        });
+        lastRenderedPly = state.moves.length;
+      }
+      
+      // Set models in dropdowns if game has them
+      if(state.white_model){
+        whiteSel.value = state.white_model;
+      }
+      if(state.black_model){
+        blackSel.value = state.black_model;
+      }
+      
+      // Don't auto-start - let user click Start button
+      // Check if game is already running/has moves
+      if(state.moves && state.moves.length > 0 && !state.over){
+        // Game is in progress, start polling to watch it
+        startPolling();
+        setControls('running');
+        addLog('Watching ongoing game...');
+      } else {
+        // New game, ready to start
+        setControls('idle');
+        addLog('Game loaded. Click Start to begin.');
+      }
+    }
+  }).catch(err => {
+    console.error('Failed to load game:', err);
+    setControls('idle');
+  });
 }

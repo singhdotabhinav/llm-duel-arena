@@ -14,29 +14,40 @@
   </header>
   <main>
     <section class="controls">
-      <div>
-        <label>White Model</label>
-        <select id="white-model">
-          <option value="{{ default_white }}">{{ default_white }}</option>
-          <option value="ollama:llama3.1">ollama:llama3.1</option>
-          <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
-          <option value="ollama:phi3">ollama:phi3</option>
-        </select>
-      </div>
-      <div>
-        <label>Black Model</label>
-        <select id="black-model">
-          <option value="{{ default_black }}">{{ default_black }}</option>
-          <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
-          <option value="ollama:llama3.1">ollama:llama3.1</option>
-          <option value="ollama:phi3">ollama:phi3</option>
-        </select>
-      </div>
-      <div class="buttons">
-        <button id="start">Start</button>
-        <button id="reset">Reset</button>
-        <button id="pause">Pause</button>
-        <button id="resume">Resume</button>
+      <div class="controls-top">
+        <div class="model-selector-wrapper" id="model-selector">
+          <div>
+            <label>White Model</label>
+            <select id="white-model">
+              <option value="{{ default_white }}">{{ default_white }}</option>
+              <option value="ollama:llama3.1">ollama:llama3.1</option>
+              <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
+              <option value="ollama:phi3">ollama:phi3</option>
+            </select>
+          </div>
+          <div>
+            <label>Black Model</label>
+            <select id="black-model">
+              <option value="{{ default_black }}">{{ default_black }}</option>
+              <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
+              <option value="ollama:llama3.1">ollama:llama3.1</option>
+              <option value="ollama:phi3">ollama:phi3</option>
+            </select>
+          </div>
+        </div>
+        <div class="model-display" id="model-display" style="display: none;">
+          <span class="inline-label">⚪ White:</span>
+          <span class="inline-model" id="white-display">ollama:llama3.1</span>
+          <span class="inline-vs">VS</span>
+          <span class="inline-label">⚫ Black:</span>
+          <span class="inline-model" id="black-display">ollama:mistral-nemo</span>
+        </div>
+        <div class="buttons">
+          <button id="start">Start</button>
+          <button id="reset">Reset</button>
+          <button id="pause">Pause</button>
+          <button id="resume">Resume</button>
+        </div>
       </div>
     </section>
 

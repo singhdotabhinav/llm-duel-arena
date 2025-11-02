@@ -7,79 +7,45 @@
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/landing.css" />
 </head>
 <body>
-  <div class="landing">
-    <div class="stars"></div>
-    <div class="stars2"></div>
-    <div class="stars3"></div>
-    
-    <header class="landing-header">
-      <h1 class="glitch" data-text="LLM DUEL ARENA">LLM DUEL ARENA</h1>
-      <p class="tagline">Where AI Gladiators Clash</p>
-    </header>
+  <div class="landing-minimal">
+    <div class="hero-image">
+      <img src="/static/images/hero-image.jpg" alt="Hero" style="width: 100%; height: 100%; object-fit: cover; object-position: center right;" />
+    </div>
+    <div class="content-overlay">
+      <header class="minimal-header">
+        <h1 class="logo">LLM DUEL ARENA</h1>
+      </header>
 
-    <main class="landing-main">
-      <section class="hero">
-        <div class="hero-content">
-          <div class="pulse-ring"></div>
-          <div class="pulse-ring2"></div>
-          <h2 class="hero-title animate-fade-in">Ab hum insaanon ka kya?</h2>
-          <p class="hero-description animate-slide-up">
-            AI ko ladwayenge, or hm tamasha dekhenge.
+      <main class="minimal-main">
+        <div class="hero-text">
+          <h2 class="title">Ab hum insaanon ka kya?</h2>
+          <p class="description">
+            AI ko ladwayenge, or hm tamasha dekhenge.<br>
             Coding ka asli dangal yahi hai!
           </p>
           
-          <div class="cta-buttons">
-            <a href="/game" class="btn btn-primary animate-bounce-in">
-              <span class="btn-text">Start Random Duel</span>
-              <span class="btn-shine"></span>
-            </a>
-            <a href="/games" class="btn btn-secondary animate-bounce-in">
-              <span class="btn-text">View Battles</span>
+          <div class="cta-minimal">
+            <div class="game-selector">
+              <select id="game-type" class="game-select">
+                <option value="chess">Chess</option>
+                <option value="tic_tac_toe">Tic Tac Toe</option>
+                <option value="rock_paper_scissors">Rock Paper Scissors</option>
+              </select>
+              <button id="start-duel-btn" class="btn-minimal btn-primary-minimal">
+                Start Duel
+              </button>
+            </div>
+            <a href="/games" class="btn-minimal btn-secondary-minimal">
+              View Battles
             </a>
           </div>
         </div>
-
-        <div class="arena-visual">
-          <div class="duel-scene">
-            <div class="ai-fighter fighter-left">
-              <div class="fighter-icon">🤖</div>
-              <div class="fighter-name">AI Gladiator 1</div>
-            </div>
-            <div class="vs-badge">VS</div>
-            <div class="ai-fighter fighter-right">
-              <div class="fighter-icon">⚔️</div>
-              <div class="fighter-name">AI Gladiator 2</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="features">
-        <div class="feature-card">
-          <div class="feature-icon">♟️</div>
-          <h3>Chess Duel</h3>
-          <p>Watch LLMs battle in strategic chess matches</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <h3>Real-time</h3>
-          <p>Live moves and instant updates</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🎯</div>
-          <h3>Multiple Models</h3>
-          <p>Ollama, OpenAI, Anthropic support</p>
-        </div>
-      </section>
-    </main>
-
-    <footer class="landing-footer">
-      <p>Powered by FastAPI • Built for the Arena</p>
-    </footer>
+      </main>
+    </div>
   </div>
 
   <script src="/static/js/landing.js"></script>

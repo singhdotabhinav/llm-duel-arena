@@ -87,36 +87,26 @@ class MatchRunner:
             move = None
             error = None
             for _ in range(retry_limit + 1):
-                uci, err = await adapter.get_move(engine)
-                if uci is None:
+                move_str, err = await adapter.get_move(engine)
+                if move_str is None:
                     error = err or "failed to produce move"
                     await asyncio.sleep(0.1)
                     continue
-                preview = game_manager.push_move(game_id, uci, model_name=adapter.model_name)
+                preview = game_manager.push_move(game_id, move_str, model_name=adapter.model_name)
                 if preview and preview.moves and not preview.moves[-1].error:
-                    move = uci
+                    move = move_str
                     break
                 else:
-                    error = f"illegal move: {uci}"
+                    error = f"illegal move: {move_str}"
                     await asyncio.sleep(0.1)
 
             ctrl.tokens_used += 1
             if move is None:
-                # Aggressive fallback: prefer captures, then checking moves, else random
-                legal_moves = list(engine.board.legal_moves)
-                capture_moves = [m for m in legal_moves if engine.board.is_capture(m)]
-                if capture_moves:
-                    pick = random.choice(capture_moves)
-                else:
-                    checking_moves = []
-                    for m in legal_moves:
-                        engine.board.push(m)
-                        if engine.board.is_check():
-                            checking_moves.append(m)
-                        engine.board.pop()
-                    pick = random.choice(checking_moves) if checking_moves else random.choice(legal_moves) if legal_moves else None
-                if pick is not None:
-                    game_manager.push_move(game_id, pick.uci(), model_name=f"fallback:{adapter.model_name}", error=error)
+                # Fallback: random legal move
+                legal = engine.legal_moves()
+                if legal:
+                    fallback_move = random.choice(legal)
+                    game_manager.push_move(game_id, fallback_move, model_name=f"fallback:{adapter.model_name}", error=error)
                 await asyncio.sleep(0.2)
                 continue
 

@@ -9,7 +9,9 @@ router = APIRouter()
 def _to_schema(state) -> GameStateSchema:
     return GameStateSchema(
         game_id=state.game_id,
-        fen=state.fen,
+        game_type=state.game_type,
+        state=state.state,
+        fen=state.state,  # Keep for backward compatibility
         turn=state.turn,  # type: ignore
         over=state.over,
         result=state.result,
@@ -48,6 +50,7 @@ async def list_games():
         if state:
             games_list.append({
                 "game_id": game_id,
+                "game_type": state.game_type,
                 "white_model": state.white_model or "Unknown",
                 "black_model": state.black_model or "Unknown",
                 "moves_count": len(state.moves),
@@ -59,24 +62,34 @@ async def list_games():
 
 
 @router.post("/random_duel")
-async def random_duel():
+async def random_duel(req: CreateGameRequest):
     """Start a random duel with default models"""
-    from ..core.config import settings
     import random
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Random duel requested with game_type: {req.game_type}")
     
     models = ["ollama:llama3.1", "ollama:mistral-nemo", "ollama:phi3"]
     white = random.choice(models)
     black = random.choice([m for m in models if m != white])
     
-    state = game_manager.create_game(white, black)
-    match_runner.start(state.game_id, white, black)
+    game_type = req.game_type if req.game_type else "chess"
+    initial_state = req.initial_state or req.fen
     
-    return {"game_id": state.game_id, "white_model": white, "black_model": black}
+    logger.info(f"Creating {game_type} game with {white} vs {black}")
+    state = game_manager.create_game(game_type, white, black, initial_state)
+    # Don't auto-start - let user click Start button
+    # match_runner.start(state.game_id, white, black)
+    
+    return {"game_id": state.game_id, "game_type": state.game_type, "white_model": white, "black_model": black}
 
 
 @router.post("/", response_model=GameStateSchema)
 async def create_game(req: CreateGameRequest):
-    state = game_manager.create_game(req.white_model, req.black_model, req.fen)
+    game_type = req.game_type or "chess"
+    initial_state = req.initial_state or req.fen
+    state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state)
     return _to_schema(state)
 
 

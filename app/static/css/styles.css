@@ -1,9 +1,15 @@
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;padding:0;color:#0f172a;background:#f8fafc}
 header{padding:16px 20px;background:#0f172a;color:#fff}
 main{padding:20px;max-width:1200px;margin:0 auto}
-.controls{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
+.controls{display:flex;flex-direction:column;gap:16px;margin-bottom:20px}
+.controls-top{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
 .controls label{display:block;font-size:12px;color:#334155;margin-bottom:6px}
 .controls select{padding:8px}
+.model-selector-wrapper{display:flex;gap:16px;flex-wrap:wrap}
+.model-display{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;flex-wrap:wrap}
+.inline-label{font-size:14px;color:#64748b;font-weight:600}
+.inline-model{font-size:16px;color:#0f172a;font-weight:900}
+.inline-vs{font-size:18px;font-weight:900;color:#f59e0b;margin:0 8px}
 .controls .buttons{display:flex;gap:8px}
 .controls button{padding:8px 12px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer}
 .controls button:hover{background:#f1f5f9}
@@ -16,6 +22,17 @@ main{padding:20px;max-width:1200px;margin:0 auto}
 .counts{display:flex;gap:12px;color:#475569;font-size:13px}
 .board{width:100%;max-width:640px;aspect-ratio:1/1;border:1px solid #cbd5e1;border-radius:8px;position:relative;background:#e5e7eb;overflow:hidden}
 .board-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}
+.board-grid.ttt-grid{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.board-grid.rps-grid{grid-template-columns:1fr;grid-template-rows:1fr;padding:20px}
+.ttt-square{font-size:min(15vmin,80px);font-weight:700;cursor:default}
+.rps-card{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 40px;border-radius:12px;min-width:250px;border:3px solid}
+.white-rps{background:linear-gradient(135deg,#fff,#f0f0f0);border-color:#cbd5e1}
+.black-rps{background:linear-gradient(135deg,#1a1a1a,#333);border-color:#666}
+.rps-label{font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:12px}
+.black-rps .rps-label{color:#9ca3af}
+.rps-choice{font-size:32px;font-weight:900;color:#0f172a;text-align:center}
+.black-rps .rps-choice{color:#f8fafc}
+.rps-vs{font-size:28px;font-weight:900;color:#f59e0b;text-shadow:0 2px 4px rgba(245,158,11,0.3);margin:15px 0}
 .square{position:relative;display:flex;align-items:flex-start;justify-content:flex-start;font-size:12px}
 .square.light{background:#f8fafc}
 .square.dark{background:#cbd5e1}

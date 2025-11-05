@@ -13,7 +13,7 @@ main{padding:20px;max-width:1200px;margin:0 auto}
 .controls .buttons{display:flex;gap:8px}
 .controls button{padding:8px 12px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer}
 .controls button:hover{background:#f1f5f9}
-.board-and-log{display:grid;grid-template-columns:1fr 360px;gap:20px}
+.board-and-log{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
 .board-wrap{display:grid;grid-template-rows:auto 1fr auto auto;gap:8px;align-content:start}
 .captured{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;--capSize:24px}
 .captured .cap{position:static;display:inline-block;font-size:var(--capSize);line-height:1}

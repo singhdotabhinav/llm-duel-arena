@@ -1,0 +1,413 @@
+/* Racing Game Specific Styles */
+
+.racing-arena {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.race-track {
+  width: 100%;
+  max-width: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  min-height: 500px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.finish-line {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 50px;
+  max-width: 8%;
+  background: repeating-linear-gradient(
+    45deg,
+    #fff,
+    #fff 10px,
+    #000 10px,
+    #000 20px
+  );
+  border-radius: 0 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  animation: checkered-pulse 2s ease-in-out infinite;
+  box-sizing: border-box;
+}
+
+@keyframes checkered-pulse {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+}
+
+.finish-flag {
+  font-size: 3rem;
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+.finish-text {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #000;
+  background: #ffd700;
+  padding: 0.3rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.lane {
+  position: relative;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+.lane.active-lane {
+  background: rgba(0, 255, 255, 0.08);
+  border-color: #00ffff;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.lane-label {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #00ffff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.white-lane .lane-label {
+  color: #ffffff;
+}
+
+.black-lane .lane-label {
+  color: #94a3b8;
+}
+
+.lane-track {
+  position: relative;
+  height: 80px;
+  width: 100%;
+  max-width: 100%;
+  background: linear-gradient(to right, 
+    rgba(100, 100, 100, 0.2) 0%, 
+    rgba(100, 100, 100, 0.3) 50%, 
+    rgba(100, 100, 100, 0.2) 100%
+  );
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+
+/* Track lane lines */
+.lane-track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 20px,
+    rgba(255, 255, 255, 0.3) 20px,
+    rgba(255, 255, 255, 0.3) 40px
+  );
+  transform: translateY(-50%);
+}
+
+.vehicle {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translateY(-50%) translateX(-50%) scaleX(-1);
+  font-size: 3rem;
+  z-index: 10;
+  transition: left 0.6s ease-out, transform 0.3s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.white-vehicle {
+  animation: idle-bounce 2s ease-in-out infinite;
+}
+
+.black-vehicle {
+  animation: idle-bounce 2s ease-in-out infinite 1s;
+}
+
+@keyframes idle-bounce {
+  0%, 100% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) translateZ(0);
+  }
+  50% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) translateY(-5px);
+  }
+}
+
+.vehicle.speed-boost {
+  animation: speed-shake 0.15s ease-in-out infinite, idle-bounce 2s ease-in-out infinite;
+}
+
+@keyframes speed-shake {
+  0%, 100% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) translateX(0);
+  }
+  25% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) translateX(-2px);
+  }
+  75% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) translateX(2px);
+  }
+}
+
+.vehicle.finished {
+  animation: victory-spin 1s ease-in-out 2;
+}
+
+@keyframes victory-spin {
+  0% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) rotate(180deg) scale(1.3);
+  }
+  100% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) rotate(360deg) scale(1);
+  }
+}
+
+.vehicle.winner {
+  animation: winner-celebrate 1s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px gold) drop-shadow(0 0 40px gold);
+}
+
+@keyframes winner-celebrate {
+  0%, 100% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) scale(1.2) rotate(-10deg);
+  }
+  75% {
+    transform: translateY(-50%) translateX(-50%) scaleX(-1) scale(1.2) rotate(10deg);
+  }
+}
+
+.speed-indicator {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  color: #00ffff;
+  font-weight: bold;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #00ffff;
+}
+
+.position-marker {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.distance-markers {
+  position: relative;
+  margin-top: 3rem;
+  height: 30px;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 2;
+}
+
+.marker {
+  position: absolute;
+  top: -15px;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  color: #64748b;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  z-index: 2;
+}
+
+.move-counters {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 2rem;
+  gap: 1rem;
+}
+
+.move-counter {
+  flex: 1;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #00ffff;
+}
+
+.racing-legend {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 1.5rem;
+}
+
+.racing-legend h4 {
+  color: #00ffff;
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.racing-legend ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.racing-legend li {
+  padding: 0.5rem 0;
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.racing-legend li strong {
+  color: #00ffff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+  .racing-arena {
+    width: 100%;
+  }
+  
+  .race-track {
+    padding: 2rem 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .race-track {
+    padding: 1.5rem 1rem;
+    min-height: 400px;
+  }
+  
+  .vehicle {
+    font-size: 2rem;
+  }
+  
+  .lane-label {
+    font-size: 1rem;
+  }
+  
+  .lane-track {
+    height: 60px;
+  }
+  
+  .finish-line {
+    width: 40px;
+  }
+  
+  .finish-flag {
+    font-size: 2rem;
+  }
+  
+  .move-counters {
+    flex-direction: column;
+  }
+  
+  .racing-legend li {
+    font-size: 0.9rem;
+  }
+}
+
+/* Additional glow effects for high speeds */
+.lane.active-lane .vehicle {
+  animation: active-glow 1s ease-in-out infinite;
+}
+
+@keyframes active-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.9));
+  }
+}
+
+/* Speed trail effect */
+.vehicle.speed-boost::after {
+  content: '💨💨';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) scaleX(-1);
+  font-size: 1.5rem;
+  opacity: 0.7;
+  animation: trail-fade 0.5s ease-out infinite;
+}
+
+@keyframes trail-fade {
+  0% {
+    opacity: 0.7;
+    transform: translateY(-50%) scaleX(-1) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(-1) translateX(30px);
+  }
+}
+

@@ -8,9 +8,10 @@ from .base_game import BaseGameEngine
 from .chess_engine import ChessEngine
 from .tic_tac_toe_engine import TicTacToeEngine
 from .rps_engine import RPSEngine
+from .racing_engine import RacingEngine
 
 Side = Literal["white", "black"]
-GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors"]
+GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing"]
 
 
 @dataclass
@@ -51,6 +52,8 @@ class GameManager:
             return TicTacToeEngine(initial_state)
         elif game_type == "rock_paper_scissors":
             return RPSEngine(initial_state)
+        elif game_type == "racing":
+            return RacingEngine(initial_state)
         else:
             raise ValueError(f"Unknown game type: {game_type}")
 

@@ -185,22 +185,30 @@
           return;
         }
         
-        grid.innerHTML = data.games.map(game => `
-          <div class="game-card">
-            <div class="game-id">${game.game_id.substring(0, 16)}...</div>
-            <div class="game-models">
-              <span class="model-badge model-white">⚪ ${game.white_model}</span>
-              <span class="model-badge model-black">⚫ ${game.black_model}</span>
+        grid.innerHTML = data.games.map(game => {
+          const gameTypeEmoji = game.game_type === 'racing' ? '🏎️' : 
+                                game.game_type === 'tic_tac_toe' ? '❌⭕' : 
+                                game.game_type === 'rock_paper_scissors' ? '✊✋✌️' : '♟️';
+          const gameTypeName = game.game_type === 'racing' ? 'Racing' : 
+                               game.game_type === 'tic_tac_toe' ? 'Tic Tac Toe' : 
+                               game.game_type === 'rock_paper_scissors' ? 'RPS' : 'Chess';
+          return `
+            <div class="game-card">
+              <div class="game-id">${gameTypeEmoji} ${gameTypeName} • ${game.game_id.substring(0, 12)}...</div>
+              <div class="game-models">
+                <span class="model-badge model-white">⚪ ${game.white_model}</span>
+                <span class="model-badge model-black">⚫ ${game.black_model}</span>
+              </div>
+              <div class="game-stats">
+                <span>Moves: ${game.moves_count}</span>
+                <span class="game-status ${game.over ? 'status-finished' : 'status-ongoing'}">
+                  ${game.over ? (game.result?.result || 'Finished') : 'Ongoing'}
+                </span>
+              </div>
+              <a href="/game?game_id=${game.game_id}" class="view-btn">View Battle</a>
             </div>
-            <div class="game-stats">
-              <span>Moves: ${game.moves_count}</span>
-              <span class="game-status ${game.over ? 'status-finished' : 'status-ongoing'}">
-                ${game.over ? (game.result?.result || 'Finished') : 'Ongoing'}
-              </span>
-            </div>
-            <a href="/game?game_id=${game.game_id}" class="view-btn">View Battle</a>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } catch (e) {
         console.error(e);
         document.getElementById('games-grid').innerHTML = `

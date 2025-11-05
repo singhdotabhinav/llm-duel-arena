@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} - Racing</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="stylesheet" href="/static/css/racing.css" />
+</head>
+<body>
+  <header>
+    <h1>{{ app_name }} - 🏎️ Sprint Racing</h1>
+    <a href="/" style="color: #00ffff; text-decoration: none; margin-left: 1rem; font-family: 'Rajdhani', sans-serif;">← Back to Arena</a>
+  </header>
+  <main>
+    <section class="controls">
+      <div class="controls-top">
+        <div class="model-selector-wrapper" id="model-selector">
+          <div>
+            <label>White Racer</label>
+            <select id="white-model">
+              <option value="{{ default_white }}">{{ default_white }}</option>
+              <option value="ollama:llama3.1">ollama:llama3.1</option>
+              <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
+              <option value="ollama:phi3">ollama:phi3</option>
+            </select>
+          </div>
+          <div>
+            <label>Black Racer</label>
+            <select id="black-model">
+              <option value="{{ default_black }}">{{ default_black }}</option>
+              <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
+              <option value="ollama:llama3.1">ollama:llama3.1</option>
+              <option value="ollama:phi3">ollama:phi3</option>
+            </select>
+          </div>
+        </div>
+        <div class="model-display" id="model-display" style="display: none;">
+          <span class="inline-label">🏁 White:</span>
+          <span class="inline-model" id="white-display">ollama:llama3.1</span>
+          <span class="inline-vs">VS</span>
+          <span class="inline-label">🏁 Black:</span>
+          <span class="inline-model" id="black-display">ollama:mistral-nemo</span>
+        </div>
+        <div class="buttons">
+          <button id="start">Start Race</button>
+          <button id="reset">Reset</button>
+          <button id="pause">Pause</button>
+          <button id="resume">Resume</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="board-and-log">
+      <div class="racing-arena">
+        <div class="race-track">
+          <!-- Finish Line -->
+          <div class="finish-line">
+            <div class="finish-flag">🏁</div>
+            <div class="finish-text">FINISH</div>
+          </div>
+          
+          <!-- Track lanes -->
+          <div class="lane white-lane">
+            <div class="lane-label">⚪ White Racer</div>
+            <div class="lane-track">
+              <div class="vehicle white-vehicle" id="white-vehicle">🏎️</div>
+              <div class="speed-indicator" id="white-speed">Speed: 0</div>
+            </div>
+            <div class="position-marker" id="white-position">Position: 0/100</div>
+          </div>
+          
+          <div class="lane black-lane">
+            <div class="lane-label">⚫ Black Racer</div>
+            <div class="lane-track">
+              <div class="vehicle black-vehicle" id="black-vehicle">🏎️</div>
+              <div class="speed-indicator" id="black-speed">Speed: 0</div>
+            </div>
+            <div class="position-marker" id="black-position">Position: 0/100</div>
+          </div>
+          
+          <!-- Distance markers -->
+          <div class="distance-markers">
+            <div class="marker" style="left: 0%;">0</div>
+            <div class="marker" style="left: 25%;">25</div>
+            <div class="marker" style="left: 50%;">50</div>
+            <div class="marker" style="left: 75%;">75</div>
+            <div class="marker" style="left: 95%;">100</div>
+          </div>
+          
+          <!-- Move counters -->
+          <div class="move-counters">
+            <div class="move-counter" id="white-moves">White Moves: 0/20</div>
+            <div class="move-counter" id="black-moves">Black Moves: 0/20</div>
+          </div>
+        </div>
+        
+        <div class="racing-legend">
+          <h4>Game Rules:</h4>
+          <ul>
+            <li>🚀 <strong>Accelerate</strong>: +1 speed (max 10) • 1 move</li>
+            <li>⚡ <strong>Boost</strong>: +3 speed (max 10) • 2 moves</li>
+            <li>🔄 <strong>Maintain</strong>: Keep speed • 1 move</li>
+            <li>🎯 <strong>Goal</strong>: Reach 100 distance first or go furthest in 20 moves!</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="log">
+        <h3>Race Log</h3>
+        <ul id="log"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/js/racing.js"></script>
+</body>
+</html>
+

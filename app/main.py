@@ -26,9 +26,19 @@ async def landing(request: Request):
 
 
 @app.get("/game", response_class=HTMLResponse)
-async def game(request: Request):
+async def game(request: Request, game_id: str = None):
+    # Determine which template to serve based on game type
+    template_name = "index.html"
+    
+    if game_id:
+        # Fetch game state to determine game type
+        from .services.game_manager import game_manager
+        state = game_manager.get_state(game_id)
+        if state and state.game_type == "racing":
+            template_name = "racing.html"
+    
     return templates.TemplateResponse(
-        "index.html",
+        template_name,
         {
             "request": request,
             "app_name": settings.app_name,

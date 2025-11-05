@@ -15,3 +15,6 @@ def configure_logging() -> None:
     if not any(isinstance(h, logging.StreamHandler) for h in root.handlers):
         root.addHandler(handler)
 
+
+
+

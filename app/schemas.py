@@ -27,6 +27,7 @@ class MoveRecord(BaseModel):
     from_square: Optional[str] = None
     to_square: Optional[str] = None
     captured_piece: Optional[str] = None
+    tokens_used: int = 0
 
 
 class GameState(BaseModel):
@@ -40,3 +41,5 @@ class GameState(BaseModel):
     moves: List[MoveRecord] = []
     white_model: Optional[str] = None
     black_model: Optional[str] = None
+    white_tokens: int = 0
+    black_tokens: int = 0

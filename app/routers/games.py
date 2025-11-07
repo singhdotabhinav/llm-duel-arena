@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
+from sqlalchemy.orm import Session
 from ..services.game_manager import game_manager
 from ..services.match_runner import match_runner
+from ..services.game_db_service import save_game_to_db, get_user_games
 from ..schemas import CreateGameRequest, MoveRequest, GameState as GameStateSchema, MoveRecord as MoveRecordSchema
+from ..routers.auth import get_current_user
+from ..database import get_db
 
 router = APIRouter()
 
@@ -26,11 +30,14 @@ def _to_schema(state) -> GameStateSchema:
                 from_square=m.from_square,
                 to_square=m.to_square,
                 captured_piece=m.captured_piece,
+                tokens_used=getattr(m, 'tokens_used', 0),
             )
             for m in state.moves
         ],
         white_model=state.white_model,
         black_model=state.black_model,
+        white_tokens=getattr(state, 'white_tokens', 0),
+        black_tokens=getattr(state, 'black_tokens', 0),
     )
 
 
@@ -61,8 +68,31 @@ async def list_games():
     return {"games": games_list}
 
 
+@router.get("/my-games")
+async def get_my_games(request: Request, db: Session = Depends(get_db)):
+    """Get games for the logged-in user"""
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    games = get_user_games(user.id)
+    games_list = []
+    for game in games:
+        games_list.append({
+            "game_id": game.id,
+            "game_type": game.game_type,
+            "white_model": game.white_model or "Unknown",
+            "black_model": game.black_model or "Unknown",
+            "moves_count": game.moves_count,
+            "over": game.is_over == 1,
+            "result": {"result": game.result, "winner": game.winner},
+            "created_at": game.created_at.isoformat() if game.created_at else None,
+        })
+    return {"games": games_list}
+
+
 @router.post("/random_duel")
-async def random_duel(req: CreateGameRequest):
+async def random_duel(req: CreateGameRequest, request: Request, db: Session = Depends(get_db)):
     """Start a random duel with default models"""
     import random
     import logging
@@ -79,6 +109,12 @@ async def random_duel(req: CreateGameRequest):
     
     logger.info(f"Creating {game_type} game with {white} vs {black}")
     state = game_manager.create_game(game_type, white, black, initial_state)
+    
+    # Save to database if user is logged in
+    user = get_current_user(request, db)
+    if user:
+        save_game_to_db(state, user.id)
+    
     # Don't auto-start - let user click Start button
     # match_runner.start(state.game_id, white, black)
     
@@ -86,10 +122,16 @@ async def random_duel(req: CreateGameRequest):
 
 
 @router.post("/", response_model=GameStateSchema)
-async def create_game(req: CreateGameRequest):
+async def create_game(req: CreateGameRequest, request: Request, db: Session = Depends(get_db)):
     game_type = req.game_type or "chess"
     initial_state = req.initial_state or req.fen
     state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state)
+    
+    # Save to database if user is logged in
+    user = get_current_user(request, db)
+    if user:
+        save_game_to_db(state, user.id)
+    
     return _to_schema(state)
 
 
@@ -102,11 +144,17 @@ async def get_state(game_id: str):
 
 
 @router.post("/{game_id}/move", response_model=GameStateSchema)
-async def post_move(game_id: str, req: MoveRequest):
+async def post_move(game_id: str, req: MoveRequest, request: Request, db: Session = Depends(get_db)):
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
     updated = game_manager.push_move(game_id, req.move, model_name="manual")
+    
+    # Update database if user is logged in
+    user = get_current_user(request, db)
+    if user:
+        save_game_to_db(updated, user.id)
+    
     return _to_schema(updated)
 
 

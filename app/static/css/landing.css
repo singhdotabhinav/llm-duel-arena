@@ -67,6 +67,11 @@ body {
 .minimal-header {
   grid-column: 1 / -1;
   margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .logo {
@@ -257,4 +262,51 @@ button.btn-minimal {
 /* Subtle hover effects only */
 .btn-minimal:active {
   transform: translateY(0);
+}
+
+/* Auth controls */
+.auth-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-auth {
+  background: linear-gradient(135deg, #00ffff, #ff00ff);
+  color: #000;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-auth:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #00ffff;
+}
+
+.user-info span {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
 }

@@ -144,6 +144,16 @@ function renderRacingState(state){
   whiteMovesEl.textContent = `White Moves: ${gameState.whiteMoves}/${MAX_MOVES}`;
   blackMovesEl.textContent = `Black Moves: ${gameState.blackMoves}/${MAX_MOVES}`;
   
+  // Update token counters
+  const whiteTokensEl = document.getElementById('white-tokens');
+  const blackTokensEl = document.getElementById('black-tokens');
+  if(whiteTokensEl && state.white_tokens !== undefined){
+    whiteTokensEl.textContent = state.white_tokens.toLocaleString();
+  }
+  if(blackTokensEl && state.black_tokens !== undefined){
+    blackTokensEl.textContent = state.black_tokens.toLocaleString();
+  }
+  
   // Highlight current turn
   const whiteLane = document.querySelector('.white-lane');
   const blackLane = document.querySelector('.black-lane');
@@ -169,8 +179,9 @@ function renderRacingState(state){
       
       const currentPos = side === 'white' ? gameState.whitePosition : gameState.blackPosition;
       const currentSpeed = side === 'white' ? gameState.whiteSpeed : gameState.blackSpeed;
+      const tokenText = m.tokens_used ? ` [${m.tokens_used} tokens]` : '';
       
-      addLog(`Move #${m.ply}: ${emoji} ${side.toUpperCase()} ${action} (Speed: ${currentSpeed}, Pos: ${currentPos})`);
+      addLog(`Move #${m.ply}: ${emoji} ${side.toUpperCase()} ${action} (Speed: ${currentSpeed}, Pos: ${currentPos})${tokenText}`);
       lastRenderedPly = Math.max(lastRenderedPly, m.ply);
       
       // Add celebration effect for finish

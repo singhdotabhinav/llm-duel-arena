@@ -20,6 +20,10 @@ main{padding:20px;max-width:1200px;margin:0 auto}
 .captured .cap.white{color:#111827}
 .captured .cap.black{color:#111827}
 .counts{display:flex;gap:12px;color:#475569;font-size:13px}
+.token-display{display:flex;gap:12px;margin-top:8px;padding:8px;background:rgba(255,215,0,0.05);border-radius:6px;border:1px solid rgba(255,215,0,0.2)}
+.token-item{display:flex;align-items:center;gap:6px}
+.token-label{font-size:11px;color:#b8860b;font-weight:600}
+.token-value{font-size:14px;color:#ffd700;font-weight:bold;font-family:'Courier New',monospace}
 .board{width:100%;max-width:640px;aspect-ratio:1/1;border:1px solid #cbd5e1;border-radius:8px;position:relative;background:#e5e7eb;overflow:hidden}
 .board-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}
 .board-grid.ttt-grid{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}

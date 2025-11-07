@@ -296,6 +296,39 @@
   color: #00ffff;
 }
 
+.token-counters {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1rem;
+  gap: 1rem;
+}
+
+.token-counter {
+  flex: 1;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
+  border-radius: 10px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.token-label {
+  font-size: 0.9rem;
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.token-value {
+  font-size: 1.2rem;
+  color: #ffd700;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+
 .racing-legend {
   background: rgba(0, 0, 0, 0.4);
   border: 2px solid rgba(0, 255, 255, 0.3);

@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class Settings(BaseModel):
@@ -11,6 +15,11 @@ class Settings(BaseModel):
     base_dir: Path = Path(__file__).resolve().parents[2]
     templates_dir: Path = base_dir / "app" / "templates"
     static_dir: Path = base_dir / "app" / "static"
+    
+    # Google OAuth
+    google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/callback")
 
     # Models
     default_white_model: str = os.getenv("DEFAULT_WHITE_MODEL", "ollama:llama3.1")

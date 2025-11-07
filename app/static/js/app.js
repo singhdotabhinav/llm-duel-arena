@@ -249,7 +249,8 @@ function renderState(state){
       const sideName = m.side;
       const movingName = moving ? pieceName(moving) : 'piece';
       const capText = m.captured_piece ? ` capturing ${pieceName(m.captured_piece)} on ${squareName(to)}` : '';
-      addLog(`Move #${m.ply}: ${sideName} ${movingName} ${squareName(from)} → ${squareName(to)}${capText}`);
+      const tokenText = m.tokens_used ? ` [${m.tokens_used} tokens]` : '';
+      addLog(`Move #${m.ply}: ${sideName} ${movingName} ${squareName(from)} → ${squareName(to)}${capText}${tokenText}`);
       updateCapturedFromServer(m);
       animateMove(lastFen, m.move_uci);
       lastRenderedPly = Math.max(lastRenderedPly, m.ply); lastMoveUci = m.move_uci;
@@ -257,6 +258,17 @@ function renderState(state){
   }
   setupGrid(); renderPieces(gameState); lastFen = gameState; renderCapturedTrays();
   const itemsNow = fenToPieces(gameState); whiteCountEl.textContent = `White: ${itemsNow.filter(i=>/[A-Z]/.test(i.piece)).length}`; blackCountEl.textContent = `Black: ${itemsNow.filter(i=>/[a-z]/.test(i.piece)).length}`;
+  
+  // Update token counts
+  const whiteTokensEl = document.getElementById('white-tokens');
+  const blackTokensEl = document.getElementById('black-tokens');
+  if(whiteTokensEl && state.white_tokens !== undefined){
+    whiteTokensEl.textContent = state.white_tokens.toLocaleString();
+  }
+  if(blackTokensEl && state.black_tokens !== undefined){
+    blackTokensEl.textContent = state.black_tokens.toLocaleString();
+  }
+  
   if(state.over){ addLog(`Game over: ${state.result.status} ${state.result.result || ''}`); stopPolling(); setControls('idle'); }
 }
 

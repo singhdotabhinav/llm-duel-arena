@@ -2,16 +2,36 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from .core.config import settings
-from .routers import games
+from .core.logging import configure_logging
+from .routers import games, auth
+from .database import init_db
+
+configure_logging()
 
 app = FastAPI(title=settings.app_name)
+
+# Add SessionMiddleware for OAuth (required by authlib)
+# Configure for localhost development
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=settings.secret_key,
+    session_cookie="session",
+    max_age=1800,  # 30 minutes
+    same_site="lax",
+    https_only=False  # Set to True in production with HTTPS
+)
+
+# Initialize database
+init_db()
 
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 templates = Jinja2Templates(directory=str(settings.templates_dir))
 
 app.include_router(games.router, prefix="/api/games", tags=["games"])
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -52,6 +72,17 @@ async def game(request: Request, game_id: str = None):
 async def games_list(request: Request):
     return templates.TemplateResponse(
         "games_list.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+        },
+    )
+
+
+@app.get("/my-games", response_class=HTMLResponse)
+async def my_games(request: Request):
+    return templates.TemplateResponse(
+        "my_games.html",
         {
             "request": request,
             "app_name": settings.app_name,

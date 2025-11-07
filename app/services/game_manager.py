@@ -25,6 +25,7 @@ class MoveRecord:
     from_square: str | None = None
     to_square: str | None = None
     captured_piece: str | None = None  # single char piece symbol from python-chess: 'p','n','b','r','q','k' (lowercase for black)
+    tokens_used: int = 0  # Tokens used for this move
 
 
 @dataclass
@@ -38,6 +39,8 @@ class GameState:
     moves: List[MoveRecord] = field(default_factory=list)
     white_model: str | None = None
     black_model: str | None = None
+    white_tokens: int = 0  # Total tokens used by white model
+    black_tokens: int = 0  # Total tokens used by black model
 
 
 class GameManager:
@@ -88,7 +91,7 @@ class GameManager:
         state.result = engine.result()
         return state
 
-    def push_move(self, game_id: str, move_str: str, model_name: Optional[str] = None, error: Optional[str] = None) -> Optional[GameState]:
+    def push_move(self, game_id: str, move_str: str, model_name: Optional[str] = None, error: Optional[str] = None, tokens_used: int = 0) -> Optional[GameState]:
         state = self._games.get(game_id)
         if not state:
             return None
@@ -139,8 +142,16 @@ class GameManager:
             from_square=from_square,
             to_square=to_square,
             captured_piece=captured_symbol if ok else None,
+            tokens_used=tokens_used,
         )
         state.moves.append(rec)
+        
+        # Update total token counts for each side
+        if side == "white":
+            state.white_tokens += tokens_used
+        else:
+            state.black_tokens += tokens_used
+        
         return self.get_state(game_id)
 
     def reset(self, game_id: str, initial_state: Optional[str] = None) -> Optional[GameState]:

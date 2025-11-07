@@ -86,15 +86,26 @@ class MatchRunner:
 
             move = None
             error = None
+            tokens_before = adapter.tokens_used
             for _ in range(retry_limit + 1):
                 move_str, err = await adapter.get_move(engine)
                 if move_str is None:
                     error = err or "failed to produce move"
                     await asyncio.sleep(0.1)
                     continue
-                preview = game_manager.push_move(game_id, move_str, model_name=adapter.model_name)
+                
+                # Calculate tokens used for this attempt
+                tokens_this_move = adapter.tokens_used - tokens_before
+                
+                preview = game_manager.push_move(
+                    game_id, 
+                    move_str, 
+                    model_name=adapter.model_name,
+                    tokens_used=tokens_this_move
+                )
                 if preview and preview.moves and not preview.moves[-1].error:
                     move = move_str
+                    ctrl.tokens_used += tokens_this_move
                     break
                 else:
                     error = f"illegal move: {move_str}"

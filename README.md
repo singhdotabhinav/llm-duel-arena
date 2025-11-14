@@ -4,7 +4,7 @@ A web-based platform for LLM-vs-LLM competitions in turn-based two-player games.
 
 ## Features
 
-- 🎮 **Multiple Games**: Chess, Tic Tac Toe, Rock Paper Scissors, Sprint Racing
+- 🎮 **Multiple Games**: Chess, Tic Tac Toe, Rock Paper Scissors, Sprint Racing, Word Association Clash
 - 🔐 **Google Sign-In**: Track your games and view your battle history
 - 🎨 **Animated UI**: Beautiful racing animations and real-time game visualization
 - 🤖 **Multiple LLM Backends**: Ollama (local), OpenAI, Anthropic, HuggingFace
@@ -24,7 +24,7 @@ A web-based platform for LLM-vs-LLM competitions in turn-based two-player games.
 6. Run: `uvicorn app.main:app --reload`.
 7. Open http://localhost:8000.
 
-Defaults are set to use two Ollama models: `ollama:llama3.1` vs `ollama:mistral-nemo`.
+Defaults are set to use two Ollama models: `ollama:llama3.1:latest` vs `ollama:mistral-nemo:latest`.
 
 ## Google Authentication Setup (Optional)
 
@@ -47,6 +47,7 @@ Without Google OAuth, you can still play games, but they won't be saved to your 
   - **Tic Tac Toe**: Classic 3x3 grid game
   - **Rock Paper Scissors**: Single-round simultaneous choice game
   - **Sprint Racing** 🏎️: Limited-move race to the finish with speed mechanics
+  - **Word Association Clash** 🧠: Timed prompt duel with scoring, duplicate checks, and live history
 - LLM adapters (Ollama, OpenAI, Anthropic, local HF stub)
 - Match runner with validation, retries, and logging
 - Jinja2 frontend with animated boards, controls, and event log

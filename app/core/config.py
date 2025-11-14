@@ -22,8 +22,8 @@ class Settings(BaseModel):
     google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/callback")
 
     # Models
-    default_white_model: str = os.getenv("DEFAULT_WHITE_MODEL", "ollama:llama3.1")
-    default_black_model: str = os.getenv("DEFAULT_BLACK_MODEL", "ollama:mistral-nemo")
+    default_white_model: str = os.getenv("DEFAULT_WHITE_MODEL", "ollama:llama3.1:latest")
+    default_black_model: str = os.getenv("DEFAULT_BLACK_MODEL", "ollama:mistral-nemo:latest")
 
     # OpenAI
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")

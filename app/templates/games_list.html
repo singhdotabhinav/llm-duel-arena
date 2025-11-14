@@ -188,10 +188,12 @@
         grid.innerHTML = data.games.map(game => {
           const gameTypeEmoji = game.game_type === 'racing' ? '🏎️' : 
                                 game.game_type === 'tic_tac_toe' ? '❌⭕' : 
-                                game.game_type === 'rock_paper_scissors' ? '✊✋✌️' : '♟️';
+                                game.game_type === 'rock_paper_scissors' ? '✊✋✌️' : 
+                                game.game_type === 'word_association_clash' ? '🧠' : '♟️';
           const gameTypeName = game.game_type === 'racing' ? 'Racing' : 
                                game.game_type === 'tic_tac_toe' ? 'Tic Tac Toe' : 
-                               game.game_type === 'rock_paper_scissors' ? 'RPS' : 'Chess';
+                               game.game_type === 'rock_paper_scissors' ? 'RPS' : 
+                               game.game_type === 'word_association_clash' ? 'Word Association Clash' : 'Chess';
           return `
             <div class="game-card">
               <div class="game-id">${gameTypeEmoji} ${gameTypeName} • ${game.game_id.substring(0, 12)}...</div>

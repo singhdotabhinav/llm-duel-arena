@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ app_name }}</title>
+  <title>{{ app_name }} - Word Association Clash</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="stylesheet" href="/static/css/word_association.css" />
 </head>
 <body>
   <header>
-    <h1>{{ app_name }}</h1>
+    <h1>{{ app_name }} - 🧠 Word Association Clash</h1>
     <a href="/" style="color: #00ffff; text-decoration: none; margin-left: 1rem; font-family: 'Rajdhani', sans-serif;">← Back to Arena</a>
   </header>
   <main>
@@ -57,19 +58,30 @@
       </div>
     </section>
 
-    <section class="board-and-log">
-      <div class="board-wrap">
-        <div id="captured-black" class="captured captured-top" aria-label="Captured by White"></div>
-        <div id="board" class="board">
-          <div id="board-grid" class="board-grid"></div>
-          <div id="pieces" class="pieces"></div>
-          <div class="legend">White bottom • Algebraic a1 bottom-left</div>
+    <section class="trivia-container">
+      <div class="trivia-left">
+        <div class="prompt-card">
+          <div class="round-info"><span id="round-info">Round 0 / 0</span></div>
+          <div class="prompt-label">Prompt</div>
+          <div class="prompt-text" id="current-prompt">Waiting for game...</div>
+          <div class="turn-indicator">Current Turn: <span id="turn-indicator">white</span></div>
+          <div class="timer-card">
+            <span class="timer-label">Turn Timer</span>
+            <span class="timer-value" id="turn-timer">--</span>
+          </div>
         </div>
-        <div id="captured-white" class="captured captured-bottom" aria-label="Captured by Black"></div>
-        <div class="counts">
-          <span id="white-count">White: 16</span>
-          <span id="black-count">Black: 16</span>
+
+        <div class="score-card">
+          <div class="score-item score-white">
+            <span class="score-label">⚪ White Score</span>
+            <span class="score-value" id="white-score">0</span>
+          </div>
+          <div class="score-item score-black">
+            <span class="score-label">⚫ Black Score</span>
+            <span class="score-value" id="black-score">0</span>
+          </div>
         </div>
+
         <div class="token-display">
           <div class="token-item">
             <span class="token-label">🪙 White Tokens:</span>
@@ -80,14 +92,30 @@
             <span class="token-value" id="black-tokens">0</span>
           </div>
         </div>
+
+        <div class="status-banner" id="status-banner" hidden></div>
+
+        <div class="legend trivia-legend">
+          Provide a word or fact related to the prompt. Avoid repeating your opponent.
+        </div>
       </div>
-      <div class="log">
-        <h3>Game Log</h3>
-        <ul id="log"></ul>
+
+      <div class="trivia-right">
+        <div class="history-card">
+          <h3>Association History</h3>
+          <ul id="history-list"></ul>
+        </div>
+        <div class="log">
+          <h3>Game Log</h3>
+          <ul id="log"></ul>
+        </div>
       </div>
     </section>
   </main>
 
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/word_association.js"></script>
 </body>
 </html>
+
+

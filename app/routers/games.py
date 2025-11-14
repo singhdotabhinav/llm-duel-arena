@@ -100,7 +100,14 @@ async def random_duel(req: CreateGameRequest, request: Request, db: Session = De
     logger = logging.getLogger(__name__)
     logger.info(f"Random duel requested with game_type: {req.game_type}")
     
-    models = ["ollama:llama3.1", "ollama:mistral-nemo", "ollama:phi3"]
+    models = [
+        "ollama:llama3.1:latest",
+        "ollama:mistral-nemo:latest",
+        "ollama:deepseek-r1:1.5b",
+        "ollama:llama3.2:latest",
+        "ollama:gpt-oss:latest",
+        "ollama:gemma3:270m",
+    ]
     white = random.choice(models)
     black = random.choice([m for m in models if m != white])
     

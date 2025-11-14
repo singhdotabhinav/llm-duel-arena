@@ -9,9 +9,10 @@ from .chess_engine import ChessEngine
 from .tic_tac_toe_engine import TicTacToeEngine
 from .rps_engine import RPSEngine
 from .racing_engine import RacingEngine
+from .word_association_engine import WordAssociationEngine
 
 Side = Literal["white", "black"]
-GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing"]
+GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"]
 
 
 @dataclass
@@ -57,6 +58,8 @@ class GameManager:
             return RPSEngine(initial_state)
         elif game_type == "racing":
             return RacingEngine(initial_state)
+        elif game_type == "word_association_clash":
+            return WordAssociationEngine(initial_state)
         else:
             raise ValueError(f"Unknown game type: {game_type}")
 

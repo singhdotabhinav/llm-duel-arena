@@ -147,8 +147,8 @@ CREATE TABLE games (
 ```json
 {
   "game_id": "abc123",
-  "white_model": "ollama:llama3.1",
-  "black_model": "ollama:mistral-nemo",
+  "white_model": "ollama:llama3.1:latest",
+  "black_model": "ollama:mistral-nemo:latest",
   "white_tokens": 1247,
   "black_tokens": 1089,
   "moves": [
@@ -399,5 +399,6 @@ Top Token Consumers:
 - Budget management
 
 Enjoy tracking your LLM token usage! 🪙🤖
+
 
 

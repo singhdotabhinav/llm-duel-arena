@@ -50,12 +50,20 @@ async def game(request: Request, game_id: str = None):
     # Determine which template to serve based on game type
     template_name = "index.html"
     
+    game_type_param = request.query_params.get("game_type") if not game_id else None
+    if game_type_param == "racing":
+        template_name = "racing.html"
+    elif game_type_param == "word_association_clash":
+        template_name = "word_association.html"
+
     if game_id:
         # Fetch game state to determine game type
         from .services.game_manager import game_manager
         state = game_manager.get_state(game_id)
         if state and state.game_type == "racing":
             template_name = "racing.html"
+        elif state and state.game_type == "word_association_clash":
+            template_name = "word_association.html"
     
     return templates.TemplateResponse(
         template_name,

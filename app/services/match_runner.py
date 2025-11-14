@@ -84,6 +84,14 @@ class MatchRunner:
                 ctrl.running = False
                 return
 
+            if hasattr(engine, "turn_expired") and getattr(engine, "turn_expired")():  # type: ignore[attr-defined]
+                if hasattr(engine, "register_timeout"):
+                    engine.register_timeout()  # type: ignore[attr-defined]
+                    game_manager.get_state(game_id)
+                ctrl.running = not engine.is_game_over()
+                await asyncio.sleep(0.2)
+                continue
+
             move = None
             error = None
             tokens_before = adapter.tokens_used
@@ -113,11 +121,16 @@ class MatchRunner:
 
             ctrl.tokens_used += 1
             if move is None:
-                # Fallback: random legal move
-                legal = engine.legal_moves()
-                if legal:
-                    fallback_move = random.choice(legal)
-                    game_manager.push_move(game_id, fallback_move, model_name=f"fallback:{adapter.model_name}", error=error)
+                if hasattr(engine, "force_failure"):
+                    engine.force_failure(error or "no-response")  # type: ignore[attr-defined]
+                    game_manager.get_state(game_id)
+                    if engine.is_game_over():
+                        ctrl.running = False
+                else:
+                    legal = engine.legal_moves()
+                    if legal:
+                        fallback_move = random.choice(legal)
+                        game_manager.push_move(game_id, fallback_move, model_name=f"fallback:{adapter.model_name}", error=error)
                 await asyncio.sleep(0.2)
                 continue
 

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Literal, Dict
 
 Side = Literal["white", "black"]
-GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing"]
+GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"]
 
 
 class CreateGameRequest(BaseModel):

@@ -21,27 +21,33 @@
             <label>White Racer</label>
             <select id="white-model">
               <option value="{{ default_white }}">{{ default_white }}</option>
-              <option value="ollama:llama3.1">ollama:llama3.1</option>
-              <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
-              <option value="ollama:phi3">ollama:phi3</option>
+              <option value="ollama:llama3.1:latest">ollama:llama3.1:latest</option>
+              <option value="ollama:mistral-nemo:latest">ollama:mistral-nemo:latest</option>
+              <option value="ollama:deepseek-r1:1.5b">ollama:deepseek-r1:1.5b</option>
+              <option value="ollama:llama3.2:latest">ollama:llama3.2:latest</option>
+              <option value="ollama:gpt-oss:latest">ollama:gpt-oss:latest</option>
+              <option value="ollama:gemma3:270m">ollama:gemma3:270m</option>
             </select>
           </div>
           <div>
             <label>Black Racer</label>
             <select id="black-model">
               <option value="{{ default_black }}">{{ default_black }}</option>
-              <option value="ollama:mistral-nemo">ollama:mistral-nemo</option>
-              <option value="ollama:llama3.1">ollama:llama3.1</option>
-              <option value="ollama:phi3">ollama:phi3</option>
+              <option value="ollama:mistral-nemo:latest">ollama:mistral-nemo:latest</option>
+              <option value="ollama:llama3.1:latest">ollama:llama3.1:latest</option>
+              <option value="ollama:deepseek-r1:1.5b">ollama:deepseek-r1:1.5b</option>
+              <option value="ollama:llama3.2:latest">ollama:llama3.2:latest</option>
+              <option value="ollama:gpt-oss:latest">ollama:gpt-oss:latest</option>
+              <option value="ollama:gemma3:270m">ollama:gemma3:270m</option>
             </select>
           </div>
         </div>
         <div class="model-display" id="model-display" style="display: none;">
           <span class="inline-label">🏁 White:</span>
-          <span class="inline-model" id="white-display">ollama:llama3.1</span>
+          <span class="inline-model" id="white-display">{{ default_white }}</span>
           <span class="inline-vs">VS</span>
           <span class="inline-label">🏁 Black:</span>
-          <span class="inline-model" id="black-display">ollama:mistral-nemo</span>
+          <span class="inline-model" id="black-display">{{ default_black }}</span>
         </div>
         <div class="buttons">
           <button id="start">Start Race</button>

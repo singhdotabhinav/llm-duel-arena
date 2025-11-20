@@ -1,0 +1,117 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Init
+        working-directory: infrastructure
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: infrastructure
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: infrastructure
+        env:
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          terraform plan \
+            -var="environment=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}" \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        working-directory: infrastructure
+        env:
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          terraform apply -auto-approve tfplan
+
+      - name: Build Lambda packages
+        run: |
+          mkdir -p infrastructure/deployments
+          cd app
+          zip -r ../infrastructure/deployments/game.zip services/ lambda_handlers/game_handler.py -x "*.pyc" "__pycache__/*"
+          zip -r ../infrastructure/deployments/auth.zip routers/auth.py lambda_handlers/auth_handler.py -x "*.pyc" "__pycache__/*"
+          zip -r ../infrastructure/deployments/llm.zip models/ lambda_handlers/llm_handler.py -x "*.pyc" "__pycache__/*"
+
+      - name: Update Lambda functions
+        run: |
+          aws lambda update-function-code \
+            --function-name llm-duel-arena-game-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }} \
+            --zip-file fileb://infrastructure/deployments/game.zip \
+            --region ${{ env.AWS_REGION }}
+          
+          aws lambda update-function-code \
+            --function-name llm-duel-arena-auth-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }} \
+            --zip-file fileb://infrastructure/deployments/auth.zip \
+            --region ${{ env.AWS_REGION }}
+          
+          aws lambda update-function-code \
+            --function-name llm-duel-arena-llm-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }} \
+            --zip-file fileb://infrastructure/deployments/llm.zip \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Output deployment info
+        run: |
+          echo "✅ Deployment complete!"
+          echo "API Gateway URL: $(cd infrastructure && terraform output -raw api_gateway_url)"
+          echo "CloudFront URL: $(cd infrastructure && terraform output -raw cloudfront_url)"
+

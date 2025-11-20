@@ -1,0 +1,15 @@
+# Copy this to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to git!
+
+aws_region  = "us-east-1"
+environment = "dev"
+project_name = "llm-duel-arena"
+
+# Get these from your .env file or AWS Secrets Manager
+openai_api_key      = "sk-..."
+google_client_id    = "your-client-id.apps.googleusercontent.com"
+google_client_secret = "your-client-secret"
+
+# Optional: Custom domain
+domain_name = ""
+

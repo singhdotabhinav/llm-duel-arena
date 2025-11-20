@@ -79,6 +79,20 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars.backup
+infrastructure/deployments/
+infrastructure/lambda-packages/
+
+# Lambda
+*.zip
+lambda-package/
+
 
 
 

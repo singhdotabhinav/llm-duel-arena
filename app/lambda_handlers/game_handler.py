@@ -5,12 +5,7 @@ Converts FastAPI routes to Lambda functions
 import json
 import os
 import time
-import boto3
 from typing import Dict, Any
-
-# Initialize DynamoDB
-dynamodb = boto3.resource('dynamodb')
-games_table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
 
 # Import your existing game logic
 import sys
@@ -18,6 +13,7 @@ sys.path.append('/opt/python')  # For Lambda layers
 
 from services.game_manager import game_manager
 from services.match_runner import match_runner
+from services.dynamodb_service import save_game_to_db, get_game_from_db, get_user_games
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -36,18 +32,24 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except:
         body = {}
     
-    # Route handling
+    # Route handling - API Gateway v2 format
     if path.startswith('/api/games'):
+        game_id = path_params.get('game_id') or path_params.get('proxy', '').split('/')[0] if path_params.get('proxy') else None
+        
         if http_method == 'POST' and path == '/api/games':
-            return create_game(body)
-        elif http_method == 'GET' and path_params.get('game_id'):
-            return get_game(path_params['game_id'])
-        elif http_method == 'POST' and path_params.get('game_id') == 'move':
-            return make_move(path_params['game_id'], body)
-        elif http_method == 'POST' and path_params.get('game_id') == 'start_autoplay':
-            return start_autoplay(path_params['game_id'], body)
+            return create_game(body, query_params)
+        elif http_method == 'GET' and game_id:
+            if path.endswith('/start_autoplay') or 'start_autoplay' in path:
+                return error_response('Use POST method for start_autoplay', 405)
+            return get_game(game_id)
+        elif http_method == 'POST' and game_id and 'move' in path:
+            return make_move(game_id, body)
+        elif http_method == 'POST' and game_id and 'start_autoplay' in path:
+            return start_autoplay(game_id, body)
         elif http_method == 'GET' and path == '/api/games/list':
-            return list_games()
+            return list_games(query_params)
+        elif http_method == 'GET' and path == '/api/games/my-games':
+            return get_my_games(query_params)
     
     return {
         'statusCode': 404,
@@ -59,26 +61,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     }
 
 
-def create_game(body: Dict) -> Dict[str, Any]:
+def create_game(body: Dict, query_params: Dict) -> Dict[str, Any]:
     """Create a new game"""
     try:
         game_type = body.get('game_type', 'chess')
         white_model = body.get('white_model')
         black_model = body.get('black_model')
+        user_id = query_params.get('user_id')  # Get from query or JWT token
         
         state = game_manager.create_game(game_type, white_model, black_model)
         
         # Save to DynamoDB
-        games_table.put_item(Item={
-            'game_id': state.game_id,
-            'move_id': 'metadata',
-            'game_type': state.game_type,
-            'state': state.state,
-            'white_model': white_model,
-            'black_model': black_model,
-            'created_at': str(int(time.time())),
-            'ttl': int(time.time()) + (30 * 24 * 60 * 60)  # 30 days TTL
-        })
+        save_game_to_db(state, user_id)
         
         return {
             'statusCode': 200,
@@ -89,10 +83,13 @@ def create_game(body: Dict) -> Dict[str, Any]:
             'body': json.dumps({
                 'game_id': state.game_id,
                 'game_type': state.game_type,
-                'state': state.state
+                'state': state.state,
+                'turn': state.turn,
+                'over': state.over
             })
         }
     except Exception as e:
+        print(f"Error creating game: {e}")
         return error_response(str(e))
 
 
@@ -175,17 +172,31 @@ def start_autoplay(game_id: str, body: Dict) -> Dict[str, Any]:
         return error_response(str(e))
 
 
-def list_games() -> Dict[str, Any]:
-    """List all games"""
+def list_games(query_params: Dict) -> Dict[str, Any]:
+    """List all games (public games)"""
     try:
-        # Query DynamoDB
-        response = games_table.query(
-            IndexName='user-games-index',
-            KeyConditionExpression='move_id = :metadata',
-            ExpressionAttributeValues={':metadata': 'metadata'}
-        )
+        # For now, return empty list
+        # In production, implement pagination and filtering
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'games': []})
+        }
+    except Exception as e:
+        return error_response(str(e))
+
+
+def get_my_games(query_params: Dict) -> Dict[str, Any]:
+    """Get games for logged-in user"""
+    try:
+        user_id = query_params.get('user_id')
+        if not user_id:
+            return error_response('User ID required', 401)
         
-        games = [item for item in response.get('Items', [])]
+        games = get_user_games(user_id, limit=100)
         
         return {
             'statusCode': 200,

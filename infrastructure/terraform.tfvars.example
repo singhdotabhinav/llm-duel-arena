@@ -1,4 +1,5 @@
-# Copy this to terraform.tfvars and fill in your values
+# Copy this file into environments/dev or environments/prod
+# Example: cp terraform.tfvars.example environments/dev/terraform.tfvars
 # DO NOT commit terraform.tfvars to git!
 
 aws_region  = "us-east-1"

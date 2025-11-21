@@ -1,4 +1,3 @@
-# S3 bucket for static assets
 resource "aws_s3_bucket" "static_assets" {
   bucket = "${var.project_name}-static-${var.environment}-${data.aws_caller_identity.current.account_id}"
 
@@ -7,17 +6,15 @@ resource "aws_s3_bucket" "static_assets" {
   }
 }
 
-# Block public access (we'll use CloudFront)
 resource "aws_s3_bucket_public_access_block" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
 
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
-  restrict_public_buckets  = true
+  restrict_public_buckets = true
 }
 
-# Enable versioning (optional, for rollback)
 resource "aws_s3_bucket_versioning" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
   versioning_configuration {
@@ -25,7 +22,6 @@ resource "aws_s3_bucket_versioning" "static_assets" {
   }
 }
 
-# Bucket policy for CloudFront access
 resource "aws_s3_bucket_policy" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
 
@@ -50,7 +46,6 @@ resource "aws_s3_bucket_policy" "static_assets" {
   })
 }
 
-# S3 bucket for Lambda deployment packages
 resource "aws_s3_bucket" "lambda_deployments" {
   bucket = "${var.project_name}-lambda-deployments-${var.environment}-${data.aws_caller_identity.current.account_id}"
 
@@ -59,7 +54,6 @@ resource "aws_s3_bucket" "lambda_deployments" {
   }
 }
 
-# Lifecycle policy to delete old deployments
 resource "aws_s3_bucket_lifecycle_configuration" "lambda_deployments" {
   bucket = aws_s3_bucket.lambda_deployments.id
 
@@ -72,4 +66,3 @@ resource "aws_s3_bucket_lifecycle_configuration" "lambda_deployments" {
     }
   }
 }
-

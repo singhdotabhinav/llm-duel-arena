@@ -7,6 +7,8 @@
 3. **Terraform** >= 1.0 installed
 4. **Python** 3.11+ for building Lambda packages
 
+> **Note:** Run Terraform commands from `infrastructure/environments/<env>` (dev or prod).
+
 ## Step 1: Configure AWS
 
 ```bash
@@ -20,7 +22,7 @@ aws configure
 ## Step 2: Set Up Terraform Variables
 
 ```bash
-cd infrastructure
+cd infrastructure/environments/dev   # or environments/prod
 cp terraform.tfvars.example terraform.tfvars
 ```
 
@@ -70,6 +72,7 @@ terraform output cloudfront_url
 
 ```bash
 # Build Lambda packages
+cd ..
 ./deploy.sh dev us-east-1
 
 # Or manually:
@@ -105,6 +108,7 @@ aws s3 sync app/static/ s3://llm-duel-arena-static-dev-ACCOUNT_ID/static/
 aws s3 sync app/templates/ s3://llm-duel-arena-static-dev-ACCOUNT_ID/
 
 # Invalidate CloudFront cache
+cd infrastructure/environments/dev
 aws cloudfront create-invalidation \
   --distribution-id $(terraform output -raw cloudfront_distribution_id) \
   --paths "/*"
@@ -172,6 +176,7 @@ Create `budget.json`:
 To destroy all resources:
 
 ```bash
+cd infrastructure/environments/dev
 terraform destroy -var-file=terraform.tfvars
 ```
 

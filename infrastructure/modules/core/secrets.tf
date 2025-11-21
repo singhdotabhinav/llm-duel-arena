@@ -1,4 +1,3 @@
-# Secrets Manager for OpenAI API key
 resource "aws_secretsmanager_secret" "openai_api_key" {
   name        = "${var.project_name}/openai-api-key/${var.environment}"
   description = "OpenAI API key for LLM service"
@@ -15,7 +14,6 @@ resource "aws_secretsmanager_secret_version" "openai_api_key" {
   })
 }
 
-# Secrets Manager for Google OAuth
 resource "aws_secretsmanager_secret" "google_oauth" {
   name        = "${var.project_name}/google-oauth/${var.environment}"
   description = "Google OAuth credentials"
@@ -32,4 +30,3 @@ resource "aws_secretsmanager_secret_version" "google_oauth" {
     client_secret = var.google_client_secret
   })
 }
-

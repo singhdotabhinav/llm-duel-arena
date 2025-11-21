@@ -1,7 +1,10 @@
-# CloudFront distribution for static assets
+resource "aws_cloudfront_origin_access_identity" "main" {
+  comment = "${var.project_name} OAI - ${var.environment}"
+}
+
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
-  is_ipv6_enabled      = true
+  is_ipv6_enabled     = true
   comment             = "${var.project_name} static assets - ${var.environment}"
   default_root_object = "index.html"
 
@@ -14,7 +17,6 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # Cache behavior
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -34,11 +36,10 @@ resource "aws_cloudfront_distribution" "main" {
     compress               = true
   }
 
-  # Custom error responses
   custom_error_response {
     error_code         = 404
     response_code      = 200
-    response_page_path = "/index.html" # SPA routing
+    response_page_path = "/index.html"
   }
 
   custom_error_response {
@@ -55,19 +56,9 @@ resource "aws_cloudfront_distribution" "main" {
 
   viewer_certificate {
     cloudfront_default_certificate = true
-    # Use ACM certificate if you have custom domain
-    # acm_certificate_arn      = aws_acm_certificate.main.arn
-    # ssl_support_method       = "sni-only"
-    # minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
     Name = "${var.project_name}-cdn-${var.environment}"
   }
 }
-
-# Origin Access Identity for CloudFront
-resource "aws_cloudfront_origin_access_identity" "main" {
-  comment = "${var.project_name} OAI - ${var.environment}"
-}
-

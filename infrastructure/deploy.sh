@@ -5,14 +5,20 @@ set -e
 
 ENVIRONMENT=${1:-dev}
 REGION=${2:-us-east-1}
+ENV_DIR="environments/${ENVIRONMENT}"
+
+if [ ! -d "$ENV_DIR" ]; then
+  echo "❌ Environment directory '$ENV_DIR' not found."
+  echo "Available environments:"
+  ls environments
+  exit 1
+fi
 
 echo "🚀 Deploying LLM Duel Arena to $ENVIRONMENT in $REGION"
 
-# Step 1: Build Lambda deployment packages
 echo "📦 Building Lambda packages..."
 mkdir -p deployments
 
-# Game service
 cd ../app
 zip -r ../infrastructure/deployments/game.zip \
     services/game_manager.py \
@@ -25,13 +31,11 @@ zip -r ../infrastructure/deployments/game.zip \
     lambda_handlers/game_handler.py \
     -x "*.pyc" "__pycache__/*" "*.db"
 
-# Auth service
 zip -r ../infrastructure/deployments/auth.zip \
     routers/auth.py \
     lambda_handlers/auth_handler.py \
     -x "*.pyc" "__pycache__/*"
 
-# LLM service
 zip -r ../infrastructure/deployments/llm.zip \
     models/base.py \
     models/ollama_adapter.py \
@@ -42,28 +46,32 @@ zip -r ../infrastructure/deployments/llm.zip \
 
 cd ../infrastructure
 
-# Step 2: Initialize Terraform (if needed)
-if [ ! -d ".terraform" ]; then
-    echo "🔧 Initializing Terraform..."
-    terraform init
+cd "$ENV_DIR"
+
+TFVARS_FILE="terraform.tfvars"
+VAR_FILE_ARG=""
+if [ -f "$TFVARS_FILE" ]; then
+  VAR_FILE_ARG="-var-file=$TFVARS_FILE"
+else
+  echo "⚠️  terraform.tfvars not found in $ENV_DIR (using defaults)"
 fi
 
-# Step 3: Plan
-echo "📋 Planning deployment..."
-terraform plan -var="environment=$ENVIRONMENT" -var="aws_region=$REGION"
+echo "🔧 Initializing Terraform..."
+terraform init
 
-# Step 4: Apply
+echo "📋 Planning deployment..."
+terraform plan $VAR_FILE_ARG
+
 read -p "Continue with deployment? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🚀 Applying Terraform..."
-    terraform apply -var="environment=$ENVIRONMENT" -var="aws_region=$REGION" -auto-approve
-    
-    echo "✅ Deployment complete!"
-    echo ""
-    echo "📊 Outputs:"
-    terraform output
-else
-    echo "❌ Deployment cancelled"
-fi
+  echo "🚀 Applying Terraform..."
+  terraform apply $VAR_FILE_ARG -auto-approve
 
+  echo "✅ Deployment complete!"
+  echo ""
+  echo "📊 Outputs:"
+  terraform output
+else
+  echo "❌ Deployment cancelled"
+fi

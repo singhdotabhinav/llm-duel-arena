@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+  description = "Environment name"
   type        = string
-  default     = "dev"
+  default     = "prod"
 }
 
 variable "project_name" {
@@ -17,7 +17,7 @@ variable "project_name" {
 }
 
 variable "openai_api_key" {
-  description = "OpenAI API key (stored in Secrets Manager)"
+  description = "OpenAI API key"
   type        = string
   sensitive   = true
   default     = ""
@@ -42,4 +42,3 @@ variable "domain_name" {
   type        = string
   default     = ""
 }
-

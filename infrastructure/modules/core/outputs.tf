@@ -26,4 +26,3 @@ output "lambda_function_names" {
     llm  = aws_lambda_function.llm.function_name
   }
 }
-

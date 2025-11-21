@@ -28,41 +28,35 @@ Expected monthly cost: **$1-5** (with free tier)
 
 ## Quick Start
 
-1. **Copy example variables:**
+1. **Choose an environment (dev/prod):**
    ```bash
+   cd environments/dev   # or environments/prod
    cp terraform.tfvars.example terraform.tfvars
    ```
 
-2. **Edit terraform.tfvars with your values:**
-   ```bash
-   aws_region = "us-east-1"
-   environment = "dev"
-   openai_api_key = "sk-..."
-   google_client_id = "..."
+2. **Edit `terraform.tfvars`:**
+   ```hcl
+   aws_region          = "us-east-1"
+   project_name        = "llm-duel-arena"
+   openai_api_key       = "sk-..."
+   google_client_id     = "..."
    google_client_secret = "..."
    ```
 
-3. **Deploy:**
+3. **Deploy from the infrastructure root:**
    ```bash
+   cd ..
    ./deploy.sh dev us-east-1
    ```
 
 ## Manual Deployment
 
-1. **Initialize Terraform:**
-   ```bash
-   terraform init
-   ```
-
-2. **Plan deployment:**
-   ```bash
-   terraform plan -var-file=terraform.tfvars
-   ```
-
-3. **Deploy:**
-   ```bash
-   terraform apply -var-file=terraform.tfvars
-   ```
+```bash
+cd environments/dev        # or environments/prod
+terraform init
+terraform plan -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
+```
 
 ## CI/CD
 
@@ -77,31 +71,30 @@ Required GitHub Secrets:
 
 ## Outputs
 
-After deployment, get your endpoints:
-
 ```bash
+cd environments/dev
 terraform output api_gateway_url
 terraform output cloudfront_url
 ```
 
 ## Destroy
 
-To tear down all resources:
-
 ```bash
+cd environments/dev
 terraform destroy -var-file=terraform.tfvars
 ```
 
 ## Structure
 
-- `main.tf`: Provider and core configuration
-- `variables.tf`: Input variables
-- `outputs.tf`: Output values
-- `lambda.tf`: Lambda function definitions
-- `api_gateway.tf`: API Gateway configuration
-- `dynamodb.tf`: DynamoDB tables
-- `s3.tf`: S3 buckets
-- `cloudfront.tf`: CloudFront distribution
-- `iam.tf`: IAM roles and policies
-- `secrets.tf`: Secrets Manager configuration
-- `deploy.sh`: Deployment script
+```
+infrastructure/
+├── modules/
+│   └── core/                  # All shared AWS resources
+├── environments/
+│   ├── dev/                   # Dev backend + tfvars
+│   └── prod/                  # Prod backend + tfvars
+├── deploy.sh                  # Helper script (wraps env terraform)
+├── build-lambda.sh            # Builds Lambda packages
+├── QUICK_START.md             # Detailed guide
+└── README.md                  # This file
+```

@@ -84,6 +84,8 @@ def call_llm(model_name: str, prompt: str, game_type: str, engine_state: str) ->
             return call_anthropic(model_name.replace('anthropic:', ''), prompt)
         elif model_name.startswith('ollama:'):
             return call_ollama(model_name.replace('ollama:', ''), prompt, game_type, engine_state)
+        elif model_name.startswith('hf:'):
+            return call_huggingface(model_name, prompt, game_type)
         else:
             return None, f"Unknown model type: {model_name}"
     except Exception as e:
@@ -162,6 +164,92 @@ def call_ollama(model: str, prompt: str, game_type: str, engine_state: str) -> T
         return move, None
     except Exception as e:
         return None, f"Ollama API call failed: {e}"
+
+
+def call_huggingface(model_name: str, prompt: str, game_type: str) -> Tuple[Optional[str], Optional[str]]:
+    """Call HuggingFace Inference API (FREE tier: 30K requests/month)"""
+    try:
+        import httpx
+        
+        # Parse model name
+        if model_name.startswith('hf:'):
+            hf_model = model_name.replace('hf:', '')
+        else:
+            hf_model = model_name
+        
+        # Default to TinyLlama if not specified
+        if not hf_model or hf_model == 'hf':
+            hf_model = 'TinyLlama/TinyLlama-1.1B-Chat-v1.0'
+        
+        # Get API token from Secrets Manager or environment
+        api_token = os.getenv('HUGGINGFACE_API_TOKEN', '')
+        if not api_token:
+            # Try to get from Secrets Manager
+            try:
+                secret_arn = os.environ.get('HUGGINGFACE_API_TOKEN_SECRET_ARN')
+                if secret_arn:
+                    response = secrets_client.get_secret_value(SecretId=secret_arn)
+                    secret = json.loads(response['SecretString'])
+                    api_token = secret.get('api_token', '')
+            except Exception:
+                pass
+        
+        base_url = f"https://api-inference.huggingface.co/models/{hf_model}"
+        
+        headers = {"Content-Type": "application/json"}
+        if api_token:
+            headers["Authorization"] = f"Bearer {api_token}"
+        
+        # Determine max tokens based on game type
+        max_tokens_map = {
+            'chess': 8,
+            'tic_tac_toe': 5,
+            'rock_paper_scissors': 3,
+            'racing': 4,
+            'word_association_clash': 6
+        }
+        max_tokens = max_tokens_map.get(game_type, 10)
+        
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": max_tokens,
+                "temperature": 0.4,
+                "return_full_text": False
+            }
+        }
+        
+        response = httpx.post(
+            base_url,
+            json=payload,
+            headers=headers,
+            timeout=30.0
+        )
+        
+        # Handle rate limiting / model loading
+        if response.status_code == 503:
+            import time
+            time.sleep(5)  # Wait for model to load
+            response = httpx.post(base_url, json=payload, headers=headers, timeout=30.0)
+        
+        if response.status_code != 200:
+            if response.status_code == 429:
+                return None, "HuggingFace API rate limit exceeded. Free tier: 30K requests/month."
+            return None, f"HuggingFace API error {response.status_code}: {response.text}"
+        
+        data = response.json()
+        
+        # HuggingFace returns different formats
+        if isinstance(data, list) and len(data) > 0:
+            move = data[0].get('generated_text', '').strip()
+        elif isinstance(data, dict):
+            move = data.get('generated_text', '').strip()
+        else:
+            move = str(data).strip()
+        
+        return move, None
+    except Exception as e:
+        return None, f"HuggingFace API call failed: {e}"
 
 
 def error_response(message: str, status_code: int = 400) -> Dict[str, Any]:

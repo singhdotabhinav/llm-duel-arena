@@ -55,7 +55,7 @@ class WordAssociationEngine(BaseGameEngine):
     ]
 
     MAX_ROUNDS = 12
-    TURN_TIMEOUT = 10.0  # seconds
+    TURN_TIMEOUT = 30.0  # seconds - increased for LLM response time
     MAX_RETRIES = 2
 
     def __init__(self, initial_state: Optional[str] = None) -> None:

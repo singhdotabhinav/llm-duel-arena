@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = { game_type: gameType };
         console.log('Sending payload:', payload);
         
-        const res = await fetch('/api/games/random_duel', {
+        const url = window.getApiUrl ? window.getApiUrl('/api/games/random_duel') : '/api/games/random_duel';
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

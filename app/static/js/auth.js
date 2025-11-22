@@ -1,7 +1,8 @@
 // Authentication utility
 async function checkAuth() {
   try {
-    const res = await fetch('/auth/user');
+    const url = window.getApiUrl ? window.getApiUrl('/api/auth/user') : '/auth/user';
+    const res = await fetch(url);
     const data = await res.json();
     return data;
   } catch (e) {

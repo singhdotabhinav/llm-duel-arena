@@ -182,3 +182,6 @@ terraform destroy -var-file=terraform.tfvars
 
 **Warning**: This will delete all data in DynamoDB!
 
+
+
+

@@ -230,3 +230,6 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         print(f"Error getting user by email: {e}")
         return None
 
+
+
+

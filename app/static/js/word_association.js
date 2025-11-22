@@ -77,7 +77,8 @@ function clearLog() {
 }
 
 async function api(path, opts = {}) {
-  const res = await fetch(`/api/games${path}`, {
+  const url = window.getApiUrl ? window.getApiUrl(`/api/games${path}`) : `/api/games${path}`;
+  const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });

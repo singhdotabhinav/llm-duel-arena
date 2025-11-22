@@ -8,6 +8,11 @@ output "cloudfront_url" {
   value       = aws_cloudfront_distribution.main.domain_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = aws_cloudfront_distribution.main.id
+}
+
 output "dynamodb_table_name" {
   description = "DynamoDB table name"
   value       = aws_dynamodb_table.games.name

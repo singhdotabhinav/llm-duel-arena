@@ -92,15 +92,5 @@ infrastructure/lambda-packages/
 # Lambda
 *.zip
 lambda-package/
-
-
-
-
-
-
-
-
-
-
-
-
+*.md
+*.txt

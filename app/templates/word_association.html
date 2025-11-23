@@ -56,6 +56,46 @@
           <button id="resume">Resume</button>
         </div>
       </div>
+      
+      <!-- Custom Keywords Section -->
+      <div class="keywords-section" id="keywords-section" style="margin-top: 1rem; padding: 1rem; background: rgba(0, 255, 255, 0.05); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 8px;">
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+          <div style="flex: 1;">
+            <label for="custom-keywords" style="display: block; margin-bottom: 0.5rem; color: #00ffff; font-weight: 600;">
+              Custom Keywords (Optional)
+            </label>
+            <textarea 
+              id="custom-keywords" 
+              placeholder="Enter keywords separated by commas or new lines&#10;Example: Space exploration, Ancient civilizations, Modern art&#10;Leave empty to use default prompts"
+              style="width: 100%; min-height: 80px; padding: 0.5rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 4px; color: #fff; font-family: 'Rajdhani', sans-serif; resize: vertical;"
+            ></textarea>
+            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: rgba(0, 255, 255, 0.7);">
+              💡 Tip: Enter one keyword per line or comma-separated. Max 12 keywords.
+            </div>
+          </div>
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 0.5rem; color: #00ffff; font-weight: 600;">
+              Default Prompts (Will be used if no custom keywords)
+            </label>
+            <div id="default-prompts" style="padding: 0.5rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 255, 255, 0.3); border-radius: 4px; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; max-height: 120px; overflow-y: auto; line-height: 1.6;">
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Apollo program</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Ocean exploration</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Renaissance art</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Quantum physics</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Ancient Egypt</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Space telescopes</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Green technology</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Classic literature</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">World cuisine</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Modern architecture</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Artificial intelligence</span>
+                <span style="background: rgba(0, 255, 255, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.2);">Medical breakthroughs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="trivia-container">

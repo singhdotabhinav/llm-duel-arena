@@ -1,8 +1,23 @@
 // Authentication utility
+// Supports both Google OAuth and AWS Cognito
+
+// Check if Cognito auth is enabled (check for cognito_auth.js or use_cognito flag)
+const USE_COGNITO = typeof window.cognitoAuth !== 'undefined' || 
+                     (document.querySelector('meta[name="use-cognito"]')?.content === 'true');
+
 async function checkAuth() {
   try {
-    const url = window.getApiUrl ? window.getApiUrl('/api/auth/user') : '/auth/user';
-    const res = await fetch(url);
+    // Always use the /auth/user endpoint for Cognito OIDC (session-based)
+    // This works for both Google OAuth and Cognito OIDC
+    const url = window.getApiUrl ? window.getApiUrl('/auth/user') : '/auth/user';
+    const res = await fetch(url, {
+      credentials: 'include' // Include cookies for session-based auth
+    });
+    
+    if (!res.ok) {
+      return { logged_in: false };
+    }
+    
     const data = await res.json();
     return data;
   } catch (e) {
@@ -38,7 +53,22 @@ function updateAuthUI(authData) {
 
 // Auto-check auth on page load
 document.addEventListener('DOMContentLoaded', async () => {
-  const authData = await checkAuth();
-  updateAuthUI(authData);
+  // Show login button immediately (will be hidden if logged in)
+  const loginBtn = document.getElementById('login-btn');
+  if (loginBtn) {
+    loginBtn.style.display = 'inline-block';
+  }
+  
+  // Then check auth status and update UI
+  try {
+    const authData = await checkAuth();
+    updateAuthUI(authData);
+  } catch (error) {
+    console.error('Failed to check auth:', error);
+    // Ensure login button is visible on error
+    if (loginBtn) {
+      loginBtn.style.display = 'inline-block';
+    }
+  }
 });
 

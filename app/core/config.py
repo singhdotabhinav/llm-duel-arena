@@ -16,10 +16,38 @@ class Settings(BaseModel):
     templates_dir: Path = base_dir / "app" / "templates"
     static_dir: Path = base_dir / "app" / "static"
     
-    # Google OAuth
+    # Google OAuth (legacy, can be removed after Cognito migration)
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/callback")
+    
+    # AWS Cognito
+    cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID", "")
+    cognito_client_id: str = os.getenv("COGNITO_CLIENT_ID", "")
+    cognito_client_secret: str = os.getenv("COGNITO_CLIENT_SECRET", "")  # Optional, only if app client has secret
+    cognito_region: str = os.getenv("COGNITO_REGION", "us-east-1")
+    cognito_domain: str = os.getenv("COGNITO_DOMAIN", "")  # e.g., your-domain.auth.us-east-1.amazoncognito.com
+    cognito_callback_url: str = os.getenv("COGNITO_CALLBACK_URL", "http://localhost:8000/auth/callback")
+    cognito_logout_url: str = os.getenv("COGNITO_LOGOUT_URL", "http://localhost:8000/")
+    cognito_scopes: str = os.getenv("COGNITO_SCOPES", "openid email profile")  # Customizable scopes
+    
+    # Use Cognito instead of Google OAuth
+    use_cognito: bool = os.getenv("USE_COGNITO", "false").lower() == "true"
+    
+    # AWS Profile (optional - for boto3 if using programmatic API)
+    aws_profile: str = os.getenv("AWS_PROFILE", "")  # Leave empty to use default profile
+    aws_region: str = os.getenv("AWS_REGION", "")  # Override region if needed
+    
+    # Cognito OIDC Authority URL (auto-generated from user pool ID and region)
+    @property
+    def cognito_authority(self) -> str:
+        """Generate Cognito OIDC authority URL"""
+        return f"https://cognito-idp.{self.cognito_region}.amazonaws.com/{self.cognito_user_pool_id}"
+    
+    @property
+    def cognito_server_metadata_url(self) -> str:
+        """Generate Cognito OIDC server metadata URL"""
+        return f"{self.cognito_authority}/.well-known/openid-configuration"
 
     # Models
     default_white_model: str = os.getenv("DEFAULT_WHITE_MODEL", "ollama:llama3.1:latest")

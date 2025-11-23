@@ -15,13 +15,18 @@ app = FastAPI(title=settings.app_name)
 
 # Add SessionMiddleware for OAuth (required by authlib)
 # Configure for localhost development
+# IMPORTANT: SessionMiddleware must be added BEFORE routers
 app.add_middleware(
     SessionMiddleware, 
     secret_key=settings.secret_key,
     session_cookie="session",
-    max_age=1800,  # 30 minutes
+    max_age=3600,  # 1 hour (increased for OAuth flow)
     same_site="lax",
-    https_only=False  # Set to True in production with HTTPS
+    https_only=False,  # Set to True in production with HTTPS
+    path="/",
+    # CRITICAL: Don't set domain parameter at all
+    # Starlette will automatically set domain=None which allows cookie for localhost
+    # Explicitly setting domain=None might cause issues, so we omit it
 )
 
 # Initialize database
@@ -31,7 +36,18 @@ app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="stat
 templates = Jinja2Templates(directory=str(settings.templates_dir))
 
 app.include_router(games.router, prefix="/api/games", tags=["games"])
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
+
+# Use Cognito auth if enabled, otherwise use Google OAuth
+if settings.use_cognito:
+    # Use OIDC-based Cognito auth (using authlib, similar to the Flask example code)
+    from .routers import cognito_oidc_auth
+    app.include_router(cognito_oidc_auth.router, prefix="/auth", tags=["auth"])
+    
+    # Also include the programmatic auth endpoints (signup/login forms) for direct API access
+    from .routers import cognito_auth
+    app.include_router(cognito_auth.router, prefix="/api/auth", tags=["auth-api"])
+else:
+    app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -41,6 +57,7 @@ async def landing(request: Request):
         {
             "request": request,
             "app_name": settings.app_name,
+            "use_cognito": settings.use_cognito,
         },
     )
 
@@ -83,6 +100,7 @@ async def games_list(request: Request):
         {
             "request": request,
             "app_name": settings.app_name,
+            "use_cognito": settings.use_cognito,
         },
     )
 
@@ -94,6 +112,7 @@ async def my_games(request: Request):
         {
             "request": request,
             "app_name": settings.app_name,
+            "use_cognito": settings.use_cognito,
         },
     )
 
@@ -101,3 +120,61 @@ async def my_games(request: Request):
 @app.get("/favicon.ico")
 async def favicon():
     return RedirectResponse(url="/static/favicon.svg")
+
+
+@app.get("/auth/login-page", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page for Cognito auth"""
+    if not settings.use_cognito:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+        },
+    )
+
+
+@app.get("/auth/signup-page", response_class=HTMLResponse)
+async def signup_page(request: Request):
+    """Signup page for Cognito auth"""
+    if not settings.use_cognito:
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse(
+        "signup.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+        },
+    )
+
+
+@app.get("/auth/login-page", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page for Cognito auth"""
+    if not settings.use_cognito:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+            "use_cognito": settings.use_cognito,
+        },
+    )
+
+
+@app.get("/auth/signup-page", response_class=HTMLResponse)
+async def signup_page(request: Request):
+    """Signup page for Cognito auth"""
+    if not settings.use_cognito:
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse(
+        "signup.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+            "use_cognito": settings.use_cognito,
+        },
+    )

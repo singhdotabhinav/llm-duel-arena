@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from sqlalchemy.orm import Session
+from typing import Optional
 from ..services.game_manager import game_manager
 from ..services.match_runner import match_runner
 from ..services.game_db_service import save_game_to_db, get_user_games
@@ -166,8 +167,10 @@ async def post_move(game_id: str, req: MoveRequest, request: Request, db: Sessio
 
 
 @router.post("/{game_id}/reset", response_model=GameStateSchema)
-async def reset_game(game_id: str):
-    state = game_manager.reset(game_id)
+async def reset_game(game_id: str, req: Optional[CreateGameRequest] = None):
+    # Accept initial_state in request body for custom prompts
+    initial_state = req.initial_state if req else None
+    state = game_manager.reset(game_id, initial_state)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
     return _to_schema(state)

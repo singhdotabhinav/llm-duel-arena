@@ -86,8 +86,14 @@ class MatchRunner:
 
             if hasattr(engine, "turn_expired") and getattr(engine, "turn_expired")():  # type: ignore[attr-defined]
                 if hasattr(engine, "register_timeout"):
+                    # Register timeout - the current side failed to respond in time
                     engine.register_timeout()  # type: ignore[attr-defined]
-                    game_manager.get_state(game_id)
+                    # Update game state to reflect the timeout
+                    state = game_manager.get_state(game_id)
+                    if state and state.over:
+                        # Game ended due to timeout, stop the match runner
+                        ctrl.running = False
+                        return
                 ctrl.running = not engine.is_game_over()
                 await asyncio.sleep(0.2)
                 continue

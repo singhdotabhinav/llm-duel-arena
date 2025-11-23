@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="use-cognito" content="{{ 'true' if use_cognito else 'false' }}">
   <title>{{ app_name }}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,14 +20,14 @@
       <header class="minimal-header">
         <h1 class="logo">LLM DUEL ARENA</h1>
         <div class="auth-controls">
-          <button id="login-btn" class="btn-minimal btn-auth" onclick="const url = window.getApiUrl ? window.getApiUrl('/api/auth/login') : '/auth/login'; window.location.href = url;" style="display: none;">
-            Sign in with Google
+          <button id="login-btn" class="btn-minimal btn-auth" onclick="{% if use_cognito %}window.location.href='/auth/login';{% else %}const url = window.getApiUrl ? window.getApiUrl('/api/auth/login') : '/auth/login'; window.location.href = url;{% endif %}">
+            {% if use_cognito %}Sign In with Cognito{% else %}Sign in with Google{% endif %}
           </button>
           <div id="user-info" class="user-info" style="display: none;">
             <img id="user-avatar" class="user-avatar" src="" alt="User" style="display: none;" />
             <span id="user-name"></span>
             <a href="/my-games" class="btn-minimal btn-secondary-minimal" style="font-size: 0.9rem; padding: 0.5rem 1rem;">My Games</a>
-            <button id="logout-btn" class="btn-minimal btn-auth" onclick="const url = window.getApiUrl ? window.getApiUrl('/api/auth/logout') : '/auth/logout'; window.location.href = url;" style="display: none;">
+            <button id="logout-btn" class="btn-minimal btn-auth" onclick="{% if use_cognito %}window.location.href='/auth/logout';{% else %}const url = window.getApiUrl ? window.getApiUrl('/api/auth/logout') : '/auth/logout'; window.location.href = url;{% endif %}" style="display: none;">
               Logout
             </button>
           </div>
@@ -64,6 +65,9 @@
   </div>
 
   <script src="/static/js/config.js"></script>
+  {% if use_cognito %}
+  <script src="/static/js/cognito_auth.js"></script>
+  {% endif %}
   <script src="/static/js/auth.js"></script>
   <script src="/static/js/landing.js"></script>
 </body>

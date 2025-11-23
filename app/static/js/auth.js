@@ -61,8 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Then check auth status and update UI
   try {
-    const authData = await checkAuth();
-    updateAuthUI(authData);
+  const authData = await checkAuth();
+  updateAuthUI(authData);
   } catch (error) {
     console.error('Failed to check auth:', error);
     // Ensure login button is visible on error

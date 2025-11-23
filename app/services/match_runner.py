@@ -127,7 +127,7 @@ class MatchRunner:
                     if state and state.moves:
                         state.moves.pop()
                     await asyncio.sleep(0.1)
-            
+
             # Calculate tokens used for this move (including all retry attempts)
             tokens_this_move = max(0, adapter.tokens_used - tokens_before)
             

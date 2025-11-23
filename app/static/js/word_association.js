@@ -289,8 +289,8 @@ function renderAssociationState(state) {
       const winner = result.winner === 'white' ? 'White' : 'Black';
       addLog(`⏱️ Timeout! ${timedOutSide} failed to respond in time. ${winner} wins!`);
     } else {
-      const winner = result.winner ? `${result.winner} wins` : result.result || 'Game over';
-      addLog(`Game over: ${winner}`);
+    const winner = result.winner ? `${result.winner} wins` : result.result || 'Game over';
+    addLog(`Game over: ${winner}`);
     }
     
     hasAnnouncedGameOver = true;

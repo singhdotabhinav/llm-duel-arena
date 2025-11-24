@@ -1,236 +1,128 @@
-"""
-DynamoDB service layer to replace SQLAlchemy
-Single-table design for cost optimization
-"""
-import json
 import boto3
-import os
-from typing import Optional, List, Dict, Any
+from botocore.exceptions import ClientError
 from datetime import datetime
-from decimal import Decimal
+import uuid
+import logging
+from typing import Dict, Any, Optional, List
+from ..core.config import settings
 
-# Initialize DynamoDB
-dynamodb = boto3.resource('dynamodb', region_name=os.getenv('AWS_REGION', 'us-east-1'))
-table_name = os.getenv('DYNAMODB_TABLE', 'llm-duel-arena-games-dev')
+logger = logging.getLogger(__name__)
 
-# Get table reference
-try:
-    games_table = dynamodb.Table(table_name)
-except:
-    games_table = None  # Will be set during initialization
-
-
-def get_table():
-    """Get DynamoDB table (lazy initialization)"""
-    global games_table
-    if games_table is None:
-        table_name = os.getenv('DYNAMODB_TABLE', 'llm-duel-arena-games-dev')
-        games_table = dynamodb.Table(table_name)
-    return games_table
-
-
-def save_game_to_db(game_state: Any, user_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Save or update a game in DynamoDB
-    Uses single-table design: PK=game_id, SK=move_id or 'metadata'
-    """
-    table = get_table()
-    
-    # Prepare game state
-    state_json = {
-        "state": game_state.state,
-        "moves": [
-            {
-                "ply": m.ply,
-                "side": m.side,
-                "move_uci": m.move_uci,
-                "move_san": m.move_san,
-                "model_name": m.model_name,
-                "error": m.error,
-                "tokens_used": getattr(m, 'tokens_used', 0)
-            }
-            for m in game_state.moves
-        ]
-    }
-    
-    # Save game metadata
-    now = datetime.utcnow().isoformat()
-    item = {
-        'game_id': game_state.game_id,
-        'move_id': 'metadata',  # Use 'metadata' as SK for game info
-        'user_id': user_id or 'anonymous',
-        'game_type': game_state.game_type,
-        'white_model': game_state.white_model or '',
-        'black_model': game_state.black_model or '',
-        'result': game_state.result.get("result", ""),
-        'winner': game_state.result.get("winner"),
-        'moves_count': len(game_state.moves),
-        'is_over': 1 if game_state.over else 0,
-        'white_tokens': getattr(game_state, 'white_tokens', 0),
-        'black_tokens': getattr(game_state, 'black_tokens', 0),
-        'game_state': json.dumps(state_json),
-        'created_at': now,
-        'updated_at': now,
-        'ttl': int(datetime.utcnow().timestamp()) + (30 * 24 * 60 * 60)  # 30 days
-    }
-    
-    # Convert to DynamoDB format (handle Decimal)
-    item = json.loads(json.dumps(item), parse_float=Decimal)
-    
-    table.put_item(Item=item)
-    
-    # Save individual moves (optional, for querying moves separately)
-    for move in game_state.moves:
-        move_item = {
-            'game_id': game_state.game_id,
-            'move_id': f"move_{move.ply:04d}",  # Zero-padded for sorting
-            'ply': move.ply,
-            'side': move.side,
-            'move_uci': move.move_uci,
-            'move_san': move.move_san or '',
-            'model_name': move.model_name or '',
-            'error': move.error or '',
-            'tokens_used': getattr(move, 'tokens_used', 0),
-            'created_at': now,
-            'ttl': int(datetime.utcnow().timestamp()) + (30 * 24 * 60 * 60)
-        }
-        move_item = json.loads(json.dumps(move_item), parse_float=Decimal)
-        table.put_item(Item=move_item)
-    
-    return item
-
-
-def get_user_games(user_id: str, limit: int = 100) -> List[Dict[str, Any]]:
-    """Get all games for a user using GSI"""
-    table = get_table()
-    
-    try:
-        response = table.query(
-            IndexName='user-games-index',
-            KeyConditionExpression='user_id = :uid AND move_id = :metadata',
-            ExpressionAttributeValues={
-                ':uid': user_id,
-                ':metadata': 'metadata'
-            },
-            ScanIndexForward=False,  # Most recent first
-            Limit=limit
-        )
+class DynamoDBService:
+    def __init__(self):
+        self.table_name = settings.dynamodb_table_name
+        self.region = settings.aws_region
         
-        games = []
-        for item in response.get('Items', []):
-            # Convert Decimal to int/float
-            game = {k: int(v) if isinstance(v, Decimal) and v % 1 == 0 else float(v) if isinstance(v, Decimal) else v 
-                   for k, v in item.items()}
-            games.append(game)
-        
-        return games
-    except Exception as e:
-        print(f"Error querying user games: {e}")
-        return []
+        # Initialize boto3 client
+        # It will automatically use environment variables or AWS profile
+        try:
+            if settings.aws_access_key_id and settings.aws_secret_access_key:
+                self.dynamodb = boto3.resource(
+                    'dynamodb',
+                    region_name=self.region,
+                    aws_access_key_id=settings.aws_access_key_id,
+                    aws_secret_access_key=settings.aws_secret_access_key
+                )
+            else:
+                session_kwargs = {'region_name': self.region}
+                if settings.aws_profile:
+                    session_kwargs['profile_name'] = settings.aws_profile
+                
+                session = boto3.Session(**session_kwargs)
+                self.dynamodb = session.resource('dynamodb')
+                
+            self.table = self.dynamodb.Table(self.table_name)
+            logger.info(f"DynamoDB Service initialized for table: {self.table_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize DynamoDB Service: {e}")
+            self.table = None
 
-
-def get_game_from_db(game_id: str) -> Optional[Dict[str, Any]]:
-    """Get a single game by ID"""
-    table = get_table()
-    
-    try:
-        response = table.get_item(
-            Key={
-                'game_id': game_id,
-                'move_id': 'metadata'
-            }
-        )
-        
-        if 'Item' not in response:
+    def get_user(self, email: str) -> Optional[Dict[str, Any]]:
+        """Retrieve user data by email"""
+        if not self.table:
+            logger.warning("DynamoDB table not initialized")
             return None
+            
+        try:
+            response = self.table.get_item(Key={'email': email})
+            return response.get('Item')
+        except ClientError as e:
+            logger.error(f"Error getting user {email}: {e}")
+            return None
+
+    def update_user_login(self, email: str) -> bool:
+        """
+        Update user's last login timestamp.
+        Creates the user if they don't exist.
+        """
+        if not self.table:
+            return False
+            
+        timestamp = datetime.utcnow().isoformat() + "Z"
         
-        item = response['Item']
-        # Convert Decimal to int/float
-        game = {k: int(v) if isinstance(v, Decimal) and v % 1 == 0 else float(v) if isinstance(v, Decimal) else v 
-               for k, v in item.items()}
-        return game
-    except Exception as e:
-        print(f"Error getting game: {e}")
-        return None
+        try:
+            # Try to update existing user first
+            self.table.update_item(
+                Key={'email': email},
+                UpdateExpression="SET last_login = :t",
+                ExpressionAttributeValues={':t': timestamp},
+                ConditionExpression="attribute_exists(email)"
+            )
+            return True
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                # User doesn't exist, create new user
+                try:
+                    self.table.put_item(
+                        Item={
+                            'email': email,
+                            'total_games_played': 0,
+                            'game_list': {},
+                            'last_login': timestamp
+                        }
+                    )
+                    logger.info(f"Created new user in DynamoDB: {email}")
+                    return True
+                except ClientError as put_error:
+                    logger.error(f"Error creating user {email}: {put_error}")
+                    return False
+            else:
+                logger.error(f"Error updating login for {email}: {e}")
+                return False
 
+    def add_game_result(self, email: str, game_id: str, game_data: Dict[str, Any]) -> bool:
+        """
+        Add a game result to the user's history.
+        Increments total_games_played and adds to game_list map.
+        """
+        if not self.table:
+            return False
+            
+        try:
+            # Ensure game_id is a string
+            game_uuid = str(game_id)
+            
+            # Prepare the update expression
+            # We use a map for game_list where key is the game_uuid
+            update_expr = "SET game_list.#gid = :g, total_games_played = total_games_played + :inc"
+            expr_names = {'#gid': game_uuid}
+            expr_values = {
+                ':g': game_data,
+                ':inc': 1
+            }
+            
+            self.table.update_item(
+                Key={'email': email},
+                UpdateExpression=update_expr,
+                ExpressionAttributeNames=expr_names,
+                ExpressionAttributeValues=expr_values
+            )
+            logger.info(f"Added game {game_uuid} to user {email}")
+            return True
+        except ClientError as e:
+            logger.error(f"Error adding game result for {email}: {e}")
+            return False
 
-def get_game_moves(game_id: str) -> List[Dict[str, Any]]:
-    """Get all moves for a game"""
-    table = get_table()
-    
-    try:
-        response = table.query(
-            KeyConditionExpression='game_id = :gid AND begins_with(move_id, :prefix)',
-            ExpressionAttributeValues={
-                ':gid': game_id,
-                ':prefix': 'move_'
-            },
-            ScanIndexForward=True  # Oldest first
-        )
-        
-        moves = []
-        for item in response.get('Items', []):
-            move = {k: int(v) if isinstance(v, Decimal) and v % 1 == 0 else float(v) if isinstance(v, Decimal) else v 
-                   for k, v in item.items()}
-            moves.append(move)
-        
-        return sorted(moves, key=lambda x: x.get('ply', 0))
-    except Exception as e:
-        print(f"Error getting game moves: {e}")
-        return []
-
-
-def save_user(user_id: str, email: str, name: Optional[str] = None, picture: Optional[str] = None) -> Dict[str, Any]:
-    """Save or update a user"""
-    table = get_table()
-    
-    now = datetime.utcnow().isoformat()
-    item = {
-        'game_id': f"user_{user_id}",  # Use user_id as PK
-        'move_id': 'metadata',  # Use 'metadata' as SK
-        'user_id': user_id,
-        'email': email,
-        'name': name or '',
-        'picture': picture or '',
-        'created_at': now,
-        'last_login': now,
-        'ttl': int(datetime.utcnow().timestamp()) + (365 * 24 * 60 * 60)  # 1 year
-    }
-    
-    item = json.loads(json.dumps(item), parse_float=Decimal)
-    table.put_item(Item=item)
-    
-    return item
-
-
-def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
-    """Get user by email using GSI"""
-    table = get_table()
-    
-    try:
-        # Note: This requires an email-index GSI
-        # For now, we'll scan (not efficient, but works for small datasets)
-        response = table.scan(
-            FilterExpression='email = :email AND move_id = :metadata',
-            ExpressionAttributeValues={
-                ':email': email,
-                ':metadata': 'metadata'
-            },
-            Limit=1
-        )
-        
-        if response.get('Items'):
-            item = response['Items'][0]
-            user = {k: int(v) if isinstance(v, Decimal) and v % 1 == 0 else float(v) if isinstance(v, Decimal) else v 
-                   for k, v in item.items()}
-            return user
-        
-        return None
-    except Exception as e:
-        print(f"Error getting user by email: {e}")
-        return None
-
-
-
-
-
+# Global instance
+dynamodb_service = DynamoDBService()

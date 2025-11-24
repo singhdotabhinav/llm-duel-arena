@@ -36,7 +36,12 @@ class Settings(BaseModel):
     
     # AWS Profile (optional - for boto3 if using programmatic API)
     aws_profile: str = os.getenv("AWS_PROFILE", "")  # Leave empty to use default profile
-    aws_region: str = os.getenv("AWS_REGION", "")  # Override region if needed
+    aws_region: str = os.getenv("AWS_REGION", "us-east-1")  # Override region if needed
+    aws_access_key_id: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    aws_secret_access_key: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    
+    # DynamoDB
+    dynamodb_table_name: str = os.getenv("DYNAMODB_TABLE_NAME", "llm-duel-arena-users")
     
     # Cognito OIDC Authority URL (auto-generated from user pool ID and region)
     @property

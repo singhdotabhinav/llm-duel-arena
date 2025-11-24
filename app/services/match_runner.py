@@ -75,6 +75,10 @@ class MatchRunner:
             st = game_manager.get_state(game_id)
             if not st or st.over:
                 ctrl.running = False
+                # Save final state
+                if st:
+                    from .game_db_service import save_game_to_db
+                    save_game_to_db(st)
                 return
 
             engine = game_manager._engines[game_id]
@@ -82,6 +86,11 @@ class MatchRunner:
             if ctrl.tokens_used >= token_budget:
                 game_manager.push_move(game_id, "0000", model_name=adapter.model_name, error="token budget exceeded")
                 ctrl.running = False
+                # Save final state
+                st = game_manager.get_state(game_id)
+                if st:
+                    from .game_db_service import save_game_to_db
+                    save_game_to_db(st)
                 return
 
             if hasattr(engine, "turn_expired") and getattr(engine, "turn_expired")():  # type: ignore[attr-defined]
@@ -93,6 +102,9 @@ class MatchRunner:
                     if state and state.over:
                         # Game ended due to timeout, stop the match runner
                         ctrl.running = False
+                        # Save final state
+                        from .game_db_service import save_game_to_db
+                        save_game_to_db(state)
                         return
                 ctrl.running = not engine.is_game_over()
                 await asyncio.sleep(0.2)
@@ -169,25 +181,44 @@ class MatchRunner:
                         state.black_tokens = current_black + tokens_this_move
                 
                 ctrl.tokens_used += tokens_this_move
+                
+                # Check if game is over after move
+                if state and state.over:
+                    from .game_db_service import save_game_to_db
+                    save_game_to_db(state)
+
             if move is None:
                 if hasattr(engine, "force_failure"):
                     engine.force_failure(error or "no-response")  # type: ignore[attr-defined]
-                    game_manager.get_state(game_id)
+                    state = game_manager.get_state(game_id)
                     if engine.is_game_over():
                         ctrl.running = False
+                        # Save final state
+                        if state:
+                            from .game_db_service import save_game_to_db
+                            save_game_to_db(state)
                 else:
                     # Only use fallback for games that have legal moves (not word association)
                     legal = engine.legal_moves()
                     if legal and len(legal) > 0:
                         fallback_move = random.choice(legal)
                         game_manager.push_move(game_id, fallback_move, model_name=f"fallback:{adapter.model_name}", error=error)
+                        # Check if game is over after fallback
+                        state = game_manager.get_state(game_id)
+                        if state and state.over:
+                            from .game_db_service import save_game_to_db
+                            save_game_to_db(state)
                     elif st.game_type == "word_association_clash":
                         # For word association, if we can't get a move, register a failure
                         if hasattr(engine, "force_failure"):
                             engine.force_failure(error or "no-response")
-                            game_manager.get_state(game_id)
+                            state = game_manager.get_state(game_id)
                             if engine.is_game_over():
                                 ctrl.running = False
+                                # Save final state
+                                if state:
+                                    from .game_db_service import save_game_to_db
+                                    save_game_to_db(state)
                 await asyncio.sleep(0.2)
                 continue
 

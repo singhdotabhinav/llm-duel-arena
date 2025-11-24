@@ -52,12 +52,14 @@ else:
 
 @app.get("/", response_class=HTMLResponse)
 async def landing(request: Request):
+    user = request.session.get("user")
     return templates.TemplateResponse(
         "landing.html",
         {
             "request": request,
             "app_name": settings.app_name,
             "use_cognito": settings.use_cognito,
+            "user": user,
         },
     )
 
@@ -150,31 +152,3 @@ async def signup_page(request: Request):
     )
 
 
-@app.get("/auth/login-page", response_class=HTMLResponse)
-async def login_page(request: Request):
-    """Login page for Cognito auth"""
-    if not settings.use_cognito:
-        return RedirectResponse(url="/auth/login", status_code=302)
-    return templates.TemplateResponse(
-        "login.html",
-        {
-            "request": request,
-            "app_name": settings.app_name,
-            "use_cognito": settings.use_cognito,
-        },
-    )
-
-
-@app.get("/auth/signup-page", response_class=HTMLResponse)
-async def signup_page(request: Request):
-    """Signup page for Cognito auth"""
-    if not settings.use_cognito:
-        return RedirectResponse(url="/", status_code=302)
-    return templates.TemplateResponse(
-        "signup.html",
-        {
-            "request": request,
-            "app_name": settings.app_name,
-            "use_cognito": settings.use_cognito,
-        },
-    )

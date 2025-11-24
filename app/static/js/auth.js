@@ -2,8 +2,8 @@
 // Supports both Google OAuth and AWS Cognito
 
 // Check if Cognito auth is enabled (check for cognito_auth.js or use_cognito flag)
-const USE_COGNITO = typeof window.cognitoAuth !== 'undefined' || 
-                     (document.querySelector('meta[name="use-cognito"]')?.content === 'true');
+const USE_COGNITO = typeof window.cognitoAuth !== 'undefined' ||
+  (document.querySelector('meta[name="use-cognito"]')?.content === 'true');
 
 async function checkAuth() {
   try {
@@ -13,11 +13,11 @@ async function checkAuth() {
     const res = await fetch(url, {
       credentials: 'include' // Include cookies for session-based auth
     });
-    
+
     if (!res.ok) {
       return { logged_in: false };
     }
-    
+
     const data = await res.json();
     return data;
   } catch (e) {
@@ -32,7 +32,7 @@ function updateAuthUI(authData) {
   const userInfo = document.getElementById('user-info');
   const userName = document.getElementById('user-name');
   const userAvatar = document.getElementById('user-avatar');
-  
+
   if (authData.logged_in && authData.user) {
     // Show user info, hide login
     if (loginBtn) loginBtn.style.display = 'none';
@@ -58,11 +58,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (loginBtn) {
     loginBtn.style.display = 'inline-block';
   }
-  
+
   // Then check auth status and update UI
+  // CRITICAL: If user info is already rendered server-side, don't overwrite it
+  const userInfo = document.getElementById('user-info');
+  if (userInfo && userInfo.style.display !== 'none' && userInfo.innerText.trim().length > 0) {
+    console.log('User info already rendered server-side, skipping client-side check');
+    return;
+  }
+
   try {
-  const authData = await checkAuth();
-  updateAuthUI(authData);
+    const authData = await checkAuth();
+    updateAuthUI(authData);
   } catch (error) {
     console.error('Failed to check auth:', error);
     // Ensure login button is visible on error

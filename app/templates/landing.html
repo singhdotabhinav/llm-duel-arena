@@ -20,17 +20,22 @@
       <header class="minimal-header">
         <h1 class="logo">LLM DUEL ARENA</h1>
         <div class="auth-controls">
-          <button id="login-btn" class="btn-minimal btn-auth" onclick="{% if use_cognito %}window.location.href='/auth/login';{% else %}const url = window.getApiUrl ? window.getApiUrl('/api/auth/login') : '/auth/login'; window.location.href = url;{% endif %}">
-            {% if use_cognito %}Sign In with Cognito{% else %}Sign in with Google{% endif %}
-          </button>
-          <div id="user-info" class="user-info" style="display: none;">
-            <img id="user-avatar" class="user-avatar" src="" alt="User" style="display: none;" />
-            <span id="user-name"></span>
+          {% if user %}
+          <div id="user-info" class="user-info">
+            {% if user.picture %}
+            <img id="user-avatar" class="user-avatar" src="{{ user.picture }}" alt="User" />
+            {% endif %}
+            <span id="user-name">{{ user.name or user.email }}</span>
             <a href="/my-games" class="btn-minimal btn-secondary-minimal" style="font-size: 0.9rem; padding: 0.5rem 1rem;">My Games</a>
-            <button id="logout-btn" class="btn-minimal btn-auth" onclick="{% if use_cognito %}window.location.href='/auth/logout';{% else %}const url = window.getApiUrl ? window.getApiUrl('/api/auth/logout') : '/auth/logout'; window.location.href = url;{% endif %}" style="display: none;">
+            <button id="logout-btn" class="btn-minimal btn-auth" onclick="{% if use_cognito %}window.location.href='/auth/logout';{% else %}const url = window.getApiUrl ? window.getApiUrl('/api/auth/logout') : '/auth/logout'; window.location.href = url;{% endif %}">
               Logout
             </button>
           </div>
+          {% else %}
+          <button id="login-btn" class="btn-minimal btn-auth" onclick="{% if use_cognito %}window.location.href='/auth/login';{% else %}const url = window.getApiUrl ? window.getApiUrl('/api/auth/login') : '/auth/login'; window.location.href = url;{% endif %}">
+            {% if use_cognito %}Sign In with Cognito{% else %}Sign in with Google{% endif %}
+          </button>
+          {% endif %}
         </div>
       </header>
 

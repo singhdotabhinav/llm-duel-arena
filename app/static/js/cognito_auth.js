@@ -11,7 +11,10 @@ const ID_TOKEN_KEY = 'cognito_id_token';
 /**
  * Get API URL helper
  */
-function getApiUrl(path) {
+/**
+ * Get API URL helper
+ */
+function resolveApiUrl(path) {
   return window.getApiUrl ? window.getApiUrl(path) : path;
 }
 
@@ -52,7 +55,7 @@ function getRefreshToken() {
  */
 async function signUp(email, password, name = null) {
   try {
-    const response = await fetch(getApiUrl('/api/auth/signup'), {
+    const response = await fetch(resolveApiUrl('/api/auth/signup'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +64,7 @@ async function signUp(email, password, name = null) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.detail || 'Signup failed');
     }
@@ -78,7 +81,7 @@ async function signUp(email, password, name = null) {
  */
 async function confirmSignUp(email, confirmationCode) {
   try {
-    const response = await fetch(getApiUrl('/api/auth/confirm-signup'), {
+    const response = await fetch(resolveApiUrl('/api/auth/confirm-signup'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +90,7 @@ async function confirmSignUp(email, confirmationCode) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.detail || 'Confirmation failed');
     }
@@ -104,7 +107,7 @@ async function confirmSignUp(email, confirmationCode) {
  */
 async function login(email, password) {
   try {
-    const response = await fetch(getApiUrl('/api/auth/login'), {
+    const response = await fetch(resolveApiUrl('/api/auth/login'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -114,7 +117,7 @@ async function login(email, password) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.detail || 'Login failed');
     }
@@ -141,7 +144,7 @@ async function refreshAccessToken() {
   }
 
   try {
-    const response = await fetch(getApiUrl('/api/auth/refresh-token'), {
+    const response = await fetch(resolveApiUrl('/api/auth/refresh-token'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -151,7 +154,7 @@ async function refreshAccessToken() {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       clearTokens();
       return null;
@@ -175,7 +178,7 @@ async function refreshAccessToken() {
  */
 async function logout() {
   try {
-    await fetch(getApiUrl('/api/auth/logout'), {
+    await fetch(resolveApiUrl('/api/auth/logout'), {
       method: 'GET',
       credentials: 'include',
     });
@@ -197,7 +200,7 @@ async function checkAuth() {
       return { logged_in: false };
     }
 
-    const response = await fetch(getApiUrl('/api/auth/user'), {
+    const response = await fetch(resolveApiUrl('/api/auth/user'), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -206,13 +209,13 @@ async function checkAuth() {
     });
 
     const data = await response.json();
-    
+
     // If token expired, try to refresh
     if (!data.logged_in && response.status === 401) {
       const newToken = await refreshAccessToken();
       if (newToken) {
         // Retry with new token
-        const retryResponse = await fetch(getApiUrl('/api/auth/user'), {
+        const retryResponse = await fetch(resolveApiUrl('/api/auth/user'), {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${newToken}`,
@@ -235,7 +238,7 @@ async function checkAuth() {
  */
 async function forgotPassword(email) {
   try {
-    const response = await fetch(getApiUrl('/api/auth/forgot-password'), {
+    const response = await fetch(resolveApiUrl('/api/auth/forgot-password'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -244,7 +247,7 @@ async function forgotPassword(email) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.detail || 'Failed to initiate password reset');
     }
@@ -261,7 +264,7 @@ async function forgotPassword(email) {
  */
 async function confirmForgotPassword(email, confirmationCode, newPassword) {
   try {
-    const response = await fetch(getApiUrl('/api/auth/confirm-forgot-password'), {
+    const response = await fetch(resolveApiUrl('/api/auth/confirm-forgot-password'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -274,7 +277,7 @@ async function confirmForgotPassword(email, confirmationCode, newPassword) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.detail || 'Password reset failed');
     }
@@ -295,7 +298,7 @@ function updateAuthUI(authData) {
   const userInfo = document.getElementById('user-info');
   const userName = document.getElementById('user-name');
   const userAvatar = document.getElementById('user-avatar');
-  
+
   if (authData.logged_in && authData.user) {
     // Show user info, hide login
     if (loginBtn) loginBtn.style.display = 'none';
@@ -316,6 +319,13 @@ function updateAuthUI(authData) {
 
 // Auto-check auth on page load
 document.addEventListener('DOMContentLoaded', async () => {
+  // CRITICAL: If user info is already rendered server-side, don't overwrite it
+  const userInfo = document.getElementById('user-info');
+  if (userInfo && userInfo.style.display !== 'none' && userInfo.innerText.trim().length > 0) {
+    console.log('User info already rendered server-side, skipping client-side check');
+    return;
+  }
+
   const authData = await checkAuth();
   updateAuthUI(authData);
 });

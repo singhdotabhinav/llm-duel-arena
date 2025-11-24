@@ -91,6 +91,13 @@ async def login(request: Request):
     
     redirect_uri = settings.cognito_callback_url
     
+    # CRITICAL: Redirect 127.0.0.1 to localhost to ensure cookies match the callback URL
+    # Cognito requires localhost for HTTP callbacks, so we must ensure the session is on localhost
+    if request.url.hostname == '127.0.0.1':
+        localhost_url = str(request.url).replace('127.0.0.1', 'localhost')
+        logger.info(f"[Cognito OIDC] Redirecting 127.0.0.1 to localhost: {localhost_url}")
+        return RedirectResponse(url=localhost_url)
+    
     # CRITICAL: Cognito only allows HTTP for localhost, not 127.0.0.1
     # AWS Cognito error: "HTTPS is required over HTTP except for http://localhost"
     # So we MUST use localhost in the callback URL, even if user accesses via 127.0.0.1
@@ -153,6 +160,8 @@ async def login(request: Request):
     # The scope must match what's configured in Cognito App Client
     # authlib will automatically generate and store state in session
     try:
+        logger.info(f"[Cognito OIDC] Initiating authorize_redirect with redirect_uri: {redirect_uri}")
+        
         # Create redirect - authlib will add state to session
         # IMPORTANT: authlib stores state with key: _state_cognito_{state_value}
         response = await oauth.cognito.authorize_redirect(
@@ -161,12 +170,13 @@ async def login(request: Request):
             scope=settings.cognito_scopes  # Use configured scopes - must match Cognito App Client settings
         )
         
+        logger.info(f"[Cognito OIDC] authorize_redirect returned response type: {type(response)}")
+        
         # Log session state IMMEDIATELY after authlib adds state
         # This shows what authlib stored
         session_keys = list(request.session.keys())
         state_keys = [k for k in session_keys if k.startswith('_state_cognito_')]
         logger.info(f"[Cognito OIDC] Session keys after authlib redirect: {session_keys}")
-        logger.info(f"[Cognito OIDC] State keys found: {state_keys}")
         
         # CRITICAL: Ensure session is saved before redirect
         # Starlette SessionMiddleware only saves session when it's modified
@@ -181,27 +191,22 @@ async def login(request: Request):
             logger.info(f"[Cognito OIDC] Redirecting to: {redirect_url[:100]}...")
             # Extract state from redirect URL for debugging
             if 'state=' in redirect_url:
-                url_state = redirect_url.split('state=')[1].split('&')[0]
-                logger.info(f"[Cognito OIDC] State in redirect URL: {url_state}")
-                # Verify this state is in session
-                expected_key = f'_state_cognito_{url_state}'
-                if expected_key in request.session:
-                    logger.info(f"[Cognito OIDC] ✅ State key '{expected_key}' found in session!")
-                    state_data = request.session.get(expected_key)
-                    logger.info(f"[Cognito OIDC] State data: {state_data}")
-                else:
-                    logger.error(f"[Cognito OIDC] ❌ State key '{expected_key}' NOT found in session!")
-                    logger.error(f"[Cognito OIDC] Available keys: {list(request.session.keys())}")
-                    # This is a critical error - state must be in session before redirect
-                    raise HTTPException(
-                        status_code=500,
-                        detail=(
-                            f"State not stored in session before redirect!\n"
-                            f"Expected key: {expected_key}\n"
-                            f"Available keys: {list(request.session.keys())}\n"
-                            f"This is a bug - please report with server logs."
-                        )
-                    )
+                try:
+                    url_state = redirect_url.split('state=')[1].split('&')[0]
+                    logger.info(f"[Cognito OIDC] State in redirect URL: {url_state}")
+                    # Verify this state is in session
+                    expected_key = f'_state_cognito_{url_state}'
+                    if expected_key in request.session:
+                        logger.info(f"[Cognito OIDC] ✅ State key '{expected_key}' found in session!")
+                        state_data = request.session.get(expected_key)
+                        logger.info(f"[Cognito OIDC] State data: {state_data}")
+                    else:
+                        logger.error(f"[Cognito OIDC] ❌ State key '{expected_key}' NOT found in session!")
+                        logger.error(f"[Cognito OIDC] Available keys: {list(request.session.keys())}")
+                        # This is a critical error - state must be in session before redirect
+                        # We will still proceed but log heavily
+                except Exception as e:
+                    logger.error(f"[Cognito OIDC] Error parsing state from URL: {e}")
         
         # CRITICAL: Force session to be saved by accessing it
         # Starlette SessionMiddleware saves session when response is finalized
@@ -261,15 +266,34 @@ async def authorize(request: Request, db: Session = Depends(get_db)):
         
         logger.info("[Cognito OIDC] Callback received")
         
-        # Debug: Log state from callback and session
+        # CRITICAL: Log cookie information FIRST to diagnose why session isn't found
         callback_state = request.query_params.get('state')
+        cookies_received = dict(request.cookies)
+        cookie_header = request.headers.get('cookie', 'Not present')
+        
+        logger.info(f"[Cognito OIDC] ===== COOKIE DEBUG =====")
         logger.info(f"[Cognito OIDC] State from callback URL: {callback_state}")
+        logger.info(f"[Cognito OIDC] Cookies received: {cookies_received}")
+        logger.info(f"[Cognito OIDC] Cookie header: {cookie_header[:200]}")
+        logger.info(f"[Cognito OIDC] Request hostname: {request.url.hostname}")
+        logger.info(f"[Cognito OIDC] Request scheme: {request.url.scheme}")
+        logger.info(f"[Cognito OIDC] Request URL: {request.url}")
+        
+        # Check if session cookie is present
+        if 'session' not in cookies_received:
+            logger.error("[Cognito OIDC] ❌ Session cookie NOT received from browser!")
+            logger.error("[Cognito OIDC] This means the browser didn't send the cookie back.")
+            logger.error("[Cognito OIDC] Possible causes:")
+            logger.error("[Cognito OIDC] 1. Cookie was never set (check Set-Cookie header in login response)")
+            logger.error("[Cognito OIDC] 2. Cookie domain/path mismatch")
+            logger.error("[Cognito OIDC] 3. Browser blocking cookies")
+            logger.error("[Cognito OIDC] 4. Cookie expired or cleared")
+        else:
+            logger.info("[Cognito OIDC] ✅ Session cookie received from browser!")
+        
         logger.info(f"[Cognito OIDC] Session keys: {list(request.session.keys())}")
         logger.info(f"[Cognito OIDC] Full session dict: {dict(request.session)}")
-        
-        # Log cookies received
-        logger.info(f"[Cognito OIDC] Cookies received: {dict(request.cookies)}")
-        logger.info(f"[Cognito OIDC] Cookie header: {request.headers.get('cookie', 'Not present')[:200]}")
+        logger.info(f"[Cognito OIDC] ========================")
         
         # Check if state exists in session (authlib stores it with provider name prefix)
         state_keys = [k for k in request.session.keys() if 'state' in k.lower()]
@@ -365,20 +389,7 @@ async def authorize(request: Request, db: Session = Depends(get_db)):
                     f"7. Session keys: {list(request.session.keys())}"
                 )
             )
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except Exception as e:
-        # Catch any other unexpected errors
-        logger.error(f"[Cognito OIDC] Unexpected error in callback: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                f"Unexpected error during authentication: {str(e)}\n\n"
-                "Please check server logs for details.\n"
-                f"Error type: {type(e).__name__}"
-            )
-        )
+            
         logger.info("[Cognito OIDC] Access token obtained successfully")
         logger.debug(f"[Cognito OIDC] Token keys: {list(token.keys())}")
         
@@ -413,14 +424,35 @@ async def authorize(request: Request, db: Session = Depends(get_db)):
             'picture': user_info.get('picture', ''),
         }
         
+        # Update DynamoDB
+        try:
+            from ..services.dynamodb_service import dynamodb_service
+            email = user_info.get('email')
+            if email:
+                dynamodb_service.update_user_login(email)
+                logger.info(f"[Cognito OIDC] Updated DynamoDB for user {email}")
+        except Exception as e:
+            logger.error(f"[Cognito OIDC] Failed to update DynamoDB: {e}")
+        
         logger.info(f"[Cognito OIDC] Login successful for {user_info.get('email')}")
         
         # Redirect to home page
         return RedirectResponse(url="/", status_code=302)
-        
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        logger.exception(f"[Cognito OIDC] Authentication failed: {e}")
-        raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
+        # Catch any other unexpected errors
+        logger.error(f"[Cognito OIDC] Unexpected error in callback: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Unexpected error during authentication: {str(e)}\n\n"
+                "Please check server logs for details.\n"
+                f"Error type: {type(e).__name__}"
+            )
+        )
 
 
 @router.get("/logout")

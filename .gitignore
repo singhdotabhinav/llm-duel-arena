@@ -65,7 +65,7 @@ test_*.py
 .ipynb_checkpoints/
 
 # Model files (if downloading large models locally)
-models/
+# models/ (Removed to allow app/models source code)
 *.bin
 *.safetensors
 

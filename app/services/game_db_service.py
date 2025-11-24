@@ -71,11 +71,19 @@ def save_game_to_db(game_state: GameManagerState, user_id: str = None):
                 user = db.query(User).filter(User.id == user_id).first()
                 if user and user.email:
                     print(f"[GameDB] Found user {user.email}. Saving game result...")
+                    # Determine winner model name
+                    winner_color = game_state.result.get("winner")
+                    winner_model = "Draw"
+                    if winner_color == "white":
+                        winner_model = game_state.white_model or "Unknown"
+                    elif winner_color == "black":
+                        winner_model = game_state.black_model or "Unknown"
+
                     game_data = {
                         "game": game_state.game_type,
                         "p1": game_state.white_model or "Unknown",
                         "p2": game_state.black_model or "Unknown",
-                        "result": game_state.result.get("winner") or "Draw"
+                        "result": winner_model
                     }
                     success = dynamodb_service.add_game_result(user.email, game_state.game_id, game_data)
                     if success:

@@ -65,8 +65,8 @@ class DynamoDBService:
             # Try to update existing user first
             self.table.update_item(
                 Key={'email': email},
-                UpdateExpression="SET last_login = :t",
-                ExpressionAttributeValues={':t': timestamp},
+                UpdateExpression="SET last_login = :t, game_list = if_not_exists(game_list, :empty_map), total_games_played = if_not_exists(total_games_played, :zero)",
+                ExpressionAttributeValues={':t': timestamp, ':empty_map': {}, ':zero': 0},
                 ConditionExpression="attribute_exists(email)"
             )
             return True
@@ -112,14 +112,71 @@ class DynamoDBService:
                 ':inc': 1
             }
             
-            self.table.update_item(
-                Key={'email': email},
-                UpdateExpression=update_expr,
-                ExpressionAttributeNames=expr_names,
-                ExpressionAttributeValues=expr_values
-            )
-            logger.info(f"Added game {game_uuid} to user {email}")
-            return True
+            # Try to add new game and increment counter (only if game doesn't exist)
+            try:
+                self.table.update_item(
+                    Key={'email': email},
+                    UpdateExpression=update_expr,
+                    ExpressionAttributeNames=expr_names,
+                    ExpressionAttributeValues=expr_values,
+                    ConditionExpression="attribute_not_exists(game_list.#gid)"
+                )
+                logger.info(f"Added new game {game_uuid} to user {email}")
+                return True
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                    # Game already exists, just update the game data without incrementing counter
+                    logger.info(f"Game {game_uuid} already exists for {email}. Updating without increment.")
+                    self.table.update_item(
+                        Key={'email': email},
+                        UpdateExpression="SET game_list.#gid = :g",
+                        ExpressionAttributeNames=expr_names,
+                        ExpressionAttributeValues={':g': game_data}
+                    )
+                    return True
+                elif e.response['Error']['Code'] == 'ValidationException':
+                    # Likely "The provided expression refers to an attribute that does not exist in the item"
+                    # This means 'game_list' map doesn't exist. Initialize it and retry.
+                    logger.warning(f"ValidationException for {email}, likely missing game_list. Initializing and retrying.")
+                    try:
+                        # First, ensure game_list exists
+                        self.table.update_item(
+                            Key={'email': email},
+                            UpdateExpression="SET game_list = :empty_map, total_games_played = if_not_exists(total_games_played, :zero)",
+                            ExpressionAttributeValues={':empty_map': {}, ':zero': 0},
+                            ConditionExpression="attribute_not_exists(game_list)"
+                        )
+                    except ClientError as init_error:
+                        if init_error.response['Error']['Code'] != 'ConditionalCheckFailedException':
+                            logger.error(f"Failed to initialize game_list for {email}: {init_error}")
+                            return False
+                    
+                    # Retry the original update (new game + increment)
+                    try:
+                        self.table.update_item(
+                            Key={'email': email},
+                            UpdateExpression=update_expr,
+                            ExpressionAttributeNames=expr_names,
+                            ExpressionAttributeValues=expr_values,
+                            ConditionExpression="attribute_not_exists(game_list.#gid)"
+                        )
+                        logger.info(f"Added game {game_uuid} to user {email} (after init)")
+                        return True
+                    except ClientError as retry_error:
+                        if retry_error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                             # Race condition: game added during init? Just update.
+                            self.table.update_item(
+                                Key={'email': email},
+                                UpdateExpression="SET game_list.#gid = :g",
+                                ExpressionAttributeNames=expr_names,
+                                ExpressionAttributeValues={':g': game_data}
+                            )
+                            return True
+                        logger.error(f"Retry failed for {email}: {retry_error}")
+                        return False
+                else:
+                    raise e
+
         except ClientError as e:
             logger.error(f"Error adding game result for {email}: {e}")
             return False

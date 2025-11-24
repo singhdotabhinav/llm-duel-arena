@@ -42,6 +42,9 @@ class Settings(BaseModel):
     
     # DynamoDB
     dynamodb_table_name: str = os.getenv("DYNAMODB_TABLE_NAME", "llm-duel-arena-users")
+
+    # Hugging Face
+    huggingface_api_token: str = os.getenv("HUGGINGFACE_API_TOKEN", "")
     
     # Cognito OIDC Authority URL (auto-generated from user pool ID and region)
     @property

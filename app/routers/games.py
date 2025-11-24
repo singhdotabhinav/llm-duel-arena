@@ -71,24 +71,42 @@ async def list_games():
 
 @router.get("/my-games")
 async def get_my_games(request: Request, db: Session = Depends(get_db)):
-    """Get games for the logged-in user"""
+    """Get games for the logged-in user from DynamoDB"""
     user = get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    games = get_user_games(user.id)
+    # Fetch from DynamoDB
+    from ..services.dynamodb_service import dynamodb_service
+    user_data = dynamodb_service.get_user(user.email)
+    
     games_list = []
-    for game in games:
-        games_list.append({
-            "game_id": game.id,
-            "game_type": game.game_type,
-            "white_model": game.white_model or "Unknown",
-            "black_model": game.black_model or "Unknown",
-            "moves_count": game.moves_count,
-            "over": game.is_over == 1,
-            "result": {"result": game.result, "winner": game.winner},
-            "created_at": game.created_at.isoformat() if game.created_at else None,
-        })
+    if user_data and "game_list" in user_data:
+        # game_list is a map of game_id -> game_data
+        for game_id, game_info in user_data["game_list"].items():
+            # Determine winner/result structure to match frontend expectation
+            # Frontend expects: "result": {"result": "...", "winner": "..."}
+            # DynamoDB has: "result": "Model Name" (string)
+            
+            # We need to adapt the DynamoDB format to what the frontend expects
+            # based on the previous SQL implementation:
+            # "result": {"result": game.result, "winner": game.winner}
+            
+            # In DynamoDB we stored "result" as the winner model name.
+            # Let's reconstruct a compatible structure.
+            result_str = game_info.get("result", "Unknown")
+            
+            games_list.append({
+                "game_id": game_id,
+                "game_type": game_info.get("game", "unknown"),
+                "white_model": game_info.get("p1", "Unknown"),
+                "black_model": game_info.get("p2", "Unknown"),
+                "moves_count": 0, # Not stored in simple DynamoDB schema
+                "over": True, # All games in history are over
+                "result": {"result": result_str, "winner": result_str},
+                "created_at": None, # Not stored in simple DynamoDB schema
+            })
+    
     return {"games": games_list}
 
 

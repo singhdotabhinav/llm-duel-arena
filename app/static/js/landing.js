@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Response:', data);
 
         if (data.game_id) {
-          window.location.href = `/ game ? game_id = ${data.game_id} `;
+          window.location.href = `/game?game_id=${data.game_id}`;
         } else {
           throw new Error('No game_id in response');
         }

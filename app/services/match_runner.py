@@ -63,6 +63,8 @@ class MatchRunner:
         black = get_adapter(ctrl.black_model or state.black_model or settings.default_black_model)
         retry_limit = settings.move_retry_limit
         token_budget = settings.token_budget_per_match
+        consecutive_failures = 0
+        max_consecutive_failures = 5
 
         while True:
             await asyncio.sleep(0.1)
@@ -162,6 +164,7 @@ class MatchRunner:
             
             # Update the move record and total token counts if move succeeded
             if move is not None:
+                consecutive_failures = 0
                 state = game_manager.get_state(game_id)
                 if state and state.moves:
                     last_move = state.moves[-1]
@@ -188,6 +191,18 @@ class MatchRunner:
                     save_game_to_db(state)
 
             if move is None:
+                consecutive_failures += 1
+                if consecutive_failures >= max_consecutive_failures:
+                    ctrl.running = False
+                    # Force save state as aborted/error if possible, or just save current state
+                    state = game_manager.get_state(game_id)
+                    if state:
+                        # Mark as over if not already? Or just save what we have.
+                        # Ideally we'd mark it as aborted, but for now just saving ensures we don't lose it.
+                        from .game_db_service import save_game_to_db
+                        save_game_to_db(state)
+                    return
+
                 if hasattr(engine, "force_failure"):
                     engine.force_failure(error or "no-response")  # type: ignore[attr-defined]
                     state = game_manager.get_state(game_id)

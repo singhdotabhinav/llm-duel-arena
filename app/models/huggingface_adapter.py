@@ -41,7 +41,7 @@ class HuggingFaceAdapter(ModelAdapter):
         
         # Get API token from environment
         self.api_token = os.getenv('HUGGINGFACE_API_TOKEN', '')
-        self.base_url = f"https://api-inference.huggingface.co/models/{self.hf_model}"
+        self.base_url = f"https://router.huggingface.co/models/{self.hf_model}"
 
     async def get_move(self, engine) -> Tuple[Optional[str], Optional[str]]:
         # Detect game type from engine

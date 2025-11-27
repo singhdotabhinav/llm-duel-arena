@@ -65,7 +65,7 @@ test_*.py
 .ipynb_checkpoints/
 
 # Model files (if downloading large models locally)
-models/
+# models/ (Removed to allow app/models source code)
 *.bin
 *.safetensors
 
@@ -79,13 +79,17 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars.backup
+infrastructure/deployments/
+infrastructure/lambda-packages/
 
-
-
-
-
-
-
-
-
+# Lambda
+*.zip
+lambda-package/
 

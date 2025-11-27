@@ -37,6 +37,10 @@ def save_game_to_db(game_state: GameManagerState, user_id: str = None):
             game.white_tokens = getattr(game_state, 'white_tokens', 0)
             game.black_tokens = getattr(game_state, 'black_tokens', 0)
             game.game_state = state_json
+            
+            # If user_id not provided, use existing one
+            if not user_id:
+                user_id = game.user_id
         else:
             # Create new game
             game = Game(
@@ -56,6 +60,44 @@ def save_game_to_db(game_state: GameManagerState, user_id: str = None):
             db.add(game)
         
         db.commit()
+        
+        # Save to DynamoDB if game is over and user is linked
+        if game_state.over and user_id:
+            print(f"[GameDB] Game {game_state.game_id} is over. User ID: {user_id}. Attempting DynamoDB save...")
+            try:
+                from ..database import User
+                from .dynamodb_service import dynamodb_service
+                
+                user = db.query(User).filter(User.id == user_id).first()
+                if user and user.email:
+                    print(f"[GameDB] Found user {user.email}. Saving game result...")
+                    # Determine winner model name
+                    winner_color = game_state.result.get("winner")
+                    winner_model = "Draw"
+                    if winner_color == "white":
+                        winner_model = game_state.white_model or "Unknown"
+                    elif winner_color == "black":
+                        winner_model = game_state.black_model or "Unknown"
+
+                    game_data = {
+                        "game": game_state.game_type,
+                        "p1": game_state.white_model or "Unknown",
+                        "p2": game_state.black_model or "Unknown",
+                        "result": winner_model
+                    }
+                    success = dynamodb_service.add_game_result(user.email, game_state.game_id, game_data)
+                    if success:
+                        print(f"[GameDB] Successfully saved to DynamoDB for {user.email}")
+                    else:
+                        print(f"[GameDB] Failed to save to DynamoDB (service returned False)")
+                else:
+                    print(f"[GameDB] User {user_id} not found or has no email.")
+            except Exception as e:
+                # Don't fail the main save if DynamoDB fails
+                print(f"[GameDB] Exception saving to DynamoDB: {e}")
+        else:
+            print(f"[GameDB] Not saving to DynamoDB. Over: {game_state.over}, User ID: {user_id}")
+                
         return game
     finally:
         db.close()

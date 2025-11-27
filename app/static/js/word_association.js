@@ -77,7 +77,8 @@ function clearLog() {
 }
 
 async function api(path, opts = {}) {
-  const res = await fetch(`/api/games${path}`, {
+  const url = window.getApiUrl ? window.getApiUrl(`/api/games${path}`) : `/api/games${path}`;
+  const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
@@ -200,10 +201,15 @@ function updateStatusBanner(apiState, engineState) {
         ? '⚪ White'
         : '⚫ Black'
       : 'No winner';
-    const reason = engineState.failure_reason
-      ? `Reason: ${engineState.failure_reason}`
-      : result.result || 'Game completed';
-    banner.textContent = `${winner} • ${reason}`;
+    // Show timeout message more prominently
+    let reason = result.result || 'Game completed';
+    if (engineState.failure_reason && engineState.failure_reason.toLowerCase().includes('timeout')) {
+      const timedOutSide = engineState.failure_side === 'white' ? '⚪ White' : '⚫ Black';
+      reason = `${timedOutSide} failed to respond in time - ${winner} wins!`;
+    } else if (engineState.failure_reason) {
+      reason = `Reason: ${engineState.failure_reason}`;
+    }
+    banner.textContent = `${winner} wins • ${reason}`;
     banner.classList.remove('status-waiting', 'status-warning');
     banner.classList.add('status-complete');
     banner.hidden = false;
@@ -275,8 +281,18 @@ function renderAssociationState(state) {
 
   if (state.over && !hasAnnouncedGameOver) {
     const result = state.result || {};
+    const engineState = state.state ? JSON.parse(state.state) : {};
+    
+    // Check if game ended due to timeout
+    if (engineState.failure_reason && engineState.failure_reason.toLowerCase().includes('timeout')) {
+      const timedOutSide = engineState.failure_side === 'white' ? 'White' : 'Black';
+      const winner = result.winner === 'white' ? 'White' : 'Black';
+      addLog(`⏱️ Timeout! ${timedOutSide} failed to respond in time. ${winner} wins!`);
+    } else {
     const winner = result.winner ? `${result.winner} wins` : result.result || 'Game over';
     addLog(`Game over: ${winner}`);
+    }
+    
     hasAnnouncedGameOver = true;
     stopPolling();
     stopCountdown();
@@ -305,9 +321,36 @@ function stopPolling() {
   }
 }
 
+// Helper function to parse custom keywords
+function parseCustomKeywords(keywordsText) {
+  if (!keywordsText || !keywordsText.trim()) {
+    return null; // Use defaults
+  }
+  
+  // Split by newlines or commas, trim, and filter empty strings
+  const keywords = keywordsText
+    .split(/[\n,]+/)
+    .map(k => k.trim())
+    .filter(k => k.length > 0)
+    .slice(0, 12); // Limit to 12 keywords (MAX_ROUNDS)
+  
+  return keywords.length > 0 ? keywords : null;
+}
+
 startBtn.addEventListener('click', async () => {
   try {
     setControls('busy');
+
+    // Get custom keywords
+    const keywordsTextarea = document.getElementById('custom-keywords');
+    const customKeywords = parseCustomKeywords(keywordsTextarea?.value || '');
+    
+    // Prepare initial_state if custom keywords provided
+    let initialState = null;
+    if (customKeywords) {
+      initialState = JSON.stringify({ custom_prompts: customKeywords });
+      addLog(`Using ${customKeywords.length} custom keywords`);
+    }
 
     if (currentGameId) {
       const currentState = await api(`/${currentGameId}`);
@@ -319,12 +362,13 @@ startBtn.addEventListener('click', async () => {
           game_type: currentGameType,
           white_model: whiteSel.value,
           black_model: blackSel.value,
+          initial_state: initialState,
         };
         const state = await api('/', { method: 'POST', body: JSON.stringify(body) });
         currentGameId = state.game_id;
         renderAssociationState(state);
         addLog(`Started ${currentGameType} game ${currentGameId}`);
-        await api(`/${currentGameId}/start_autoplay`, { method: 'POST', body: JSON.stringify(body) });
+        await api(`/${currentGameId}/start_autoplay`, { method: 'POST', body: JSON.stringify({ white_model: whiteSel.value, black_model: blackSel.value }) });
         addLog('Autoplay started');
         startPolling();
         setControls('running');
@@ -346,12 +390,13 @@ startBtn.addEventListener('click', async () => {
       game_type: currentGameType,
       white_model: whiteSel.value,
       black_model: blackSel.value,
+      initial_state: initialState,
     };
     const state = await api('/', { method: 'POST', body: JSON.stringify(body) });
     currentGameId = state.game_id;
     renderAssociationState(state);
     addLog(`Started ${currentGameType} game ${currentGameId}`);
-    await api(`/${currentGameId}/start_autoplay`, { method: 'POST', body: JSON.stringify(body) });
+    await api(`/${currentGameId}/start_autoplay`, { method: 'POST', body: JSON.stringify({ white_model: whiteSel.value, black_model: blackSel.value }) });
     addLog('Autoplay started');
     startPolling();
     setControls('running');
@@ -366,7 +411,21 @@ resetBtn.addEventListener('click', async () => {
   if (!currentGameId) return;
   try {
     setControls('busy');
-    const state = await api(`/${currentGameId}/reset`, { method: 'POST' });
+    
+    // Get custom keywords for reset
+    const keywordsTextarea = document.getElementById('custom-keywords');
+    const customKeywords = parseCustomKeywords(keywordsTextarea?.value || '');
+    let initialState = null;
+    if (customKeywords) {
+      initialState = JSON.stringify({ custom_prompts: customKeywords });
+    }
+    
+    // Reset with custom keywords if provided
+    const resetBody = initialState ? { initial_state: initialState } : {};
+    const state = await api(`/${currentGameId}/reset`, { 
+      method: 'POST',
+      body: JSON.stringify(resetBody)
+    });
     clearLog();
     lastRenderedPly = 0;
     hasAnnouncedGameOver = false;

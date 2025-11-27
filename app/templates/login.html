@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} - Login</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <style>
+    .auth-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 2rem;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+    }
+    .auth-container h2 {
+      color: #00ffff;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      color: #00ffff;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: rgba(0, 255, 255, 0.6);
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    }
+    .btn-auth {
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #00ffff, #0080ff);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    .btn-auth:hover {
+      opacity: 0.9;
+    }
+    .btn-auth:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .error-message {
+      color: #ff4444;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .success-message {
+      color: #44ff44;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .auth-links {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    .auth-links a {
+      color: #00ffff;
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+    .auth-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <h2>Login</h2>
+    <form id="login-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" />
+      </div>
+      <div id="error-message" class="error-message" style="display: none;"></div>
+      <button type="submit" class="btn-auth" id="login-btn">Login</button>
+    </form>
+    <div class="auth-links">
+      <a href="/auth/signup-page">Don't have an account? Sign up</a><br />
+      <a href="/auth/forgot-password-page">Forgot password?</a><br />
+      <a href="/">Back to Home</a>
+    </div>
+  </div>
+
+  <script src="/static/js/config.js"></script>
+  <script src="/static/js/cognito_auth.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('error-message');
+      const loginBtn = document.getElementById('login-btn');
+      
+      errorDiv.style.display = 'none';
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Logging in...';
+      
+      try {
+        await window.cognitoAuth.login(email, password);
+        window.location.href = '/';
+      } catch (error) {
+        errorDiv.textContent = error.message || 'Login failed';
+        errorDiv.style.display = 'block';
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+      }
+    });
+  </script>
+</body>
+</html>
+

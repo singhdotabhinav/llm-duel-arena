@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,10 +9,12 @@
   <link rel="stylesheet" href="/static/css/styles.css" />
   <link rel="stylesheet" href="/static/css/racing.css" />
 </head>
+
 <body>
   <header>
     <h1>{{ app_name }} - 🏎️ Sprint Racing</h1>
-    <a href="/" style="color: #00ffff; text-decoration: none; margin-left: 1rem; font-family: 'Rajdhani', sans-serif;">← Back to Arena</a>
+    <a href="/" style="color: #00ffff; text-decoration: none; margin-left: 1rem; font-family: 'Rajdhani', sans-serif;">←
+      Back to Arena</a>
   </header>
   <main>
     <section class="controls">
@@ -27,6 +30,12 @@
               <option value="ollama:llama3.2:latest">ollama:llama3.2:latest</option>
               <option value="ollama:gpt-oss:latest">ollama:gpt-oss:latest</option>
               <option value="ollama:gemma3:270m">ollama:gemma3:270m</option>
+              <optgroup label="Hugging Face (Free)">
+                <option value="hf:HuggingFaceH4/zephyr-7b-beta">Zephyr 7B Beta (HF)</option>
+                <option value="hf:meta-llama/Meta-Llama-3-8B-Instruct">Llama 3 8B Instruct (HF)</option>
+                <option value="hf:Qwen/Qwen2.5-72B-Instruct">Qwen 2.5 72B (HF)</option>
+                <option value="hf:google/gemma-2-2b-it">Gemma 2 2B (HF)</option>
+              </optgroup>
             </select>
           </div>
           <div>
@@ -39,6 +48,12 @@
               <option value="ollama:llama3.2:latest">ollama:llama3.2:latest</option>
               <option value="ollama:gpt-oss:latest">ollama:gpt-oss:latest</option>
               <option value="ollama:gemma3:270m">ollama:gemma3:270m</option>
+              <optgroup label="Hugging Face (Free)">
+                <option value="hf:HuggingFaceH4/zephyr-7b-beta">Zephyr 7B Beta (HF)</option>
+                <option value="hf:meta-llama/Meta-Llama-3-8B-Instruct">Llama 3 8B Instruct (HF)</option>
+                <option value="hf:Qwen/Qwen2.5-72B-Instruct">Qwen 2.5 72B (HF)</option>
+                <option value="hf:google/gemma-2-2b-it">Gemma 2 2B (HF)</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -66,7 +81,7 @@
             <div class="finish-flag">🏁</div>
             <div class="finish-text">FINISH</div>
           </div>
-          
+
           <!-- Track lanes -->
           <div class="lane white-lane">
             <div class="lane-label">⚪ White Racer</div>
@@ -76,7 +91,7 @@
             </div>
             <div class="position-marker" id="white-position">Position: 0/100</div>
           </div>
-          
+
           <div class="lane black-lane">
             <div class="lane-label">⚫ Black Racer</div>
             <div class="lane-track">
@@ -85,7 +100,7 @@
             </div>
             <div class="position-marker" id="black-position">Position: 0/100</div>
           </div>
-          
+
           <!-- Distance markers -->
           <div class="distance-markers">
             <div class="marker" style="left: 0%;">0</div>
@@ -94,13 +109,13 @@
             <div class="marker" style="left: 75%;">75</div>
             <div class="marker" style="left: 95%;">100</div>
           </div>
-          
+
           <!-- Move counters -->
           <div class="move-counters">
             <div class="move-counter" id="white-moves">White Moves: 0/20</div>
             <div class="move-counter" id="black-moves">Black Moves: 0/20</div>
           </div>
-          
+
           <!-- Token counters -->
           <div class="token-counters">
             <div class="token-counter white-tokens">
@@ -113,7 +128,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="racing-legend">
           <h4>Game Rules:</h4>
           <ul>
@@ -124,7 +139,7 @@
           </ul>
         </div>
       </div>
-      
+
       <div class="log">
         <h3>Race Log</h3>
         <ul id="log"></ul>
@@ -132,7 +147,8 @@
     </section>
   </main>
 
+  <script src="/static/js/config.js"></script>
   <script src="/static/js/racing.js"></script>
 </body>
-</html>
 
+</html>

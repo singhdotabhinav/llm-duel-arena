@@ -55,7 +55,7 @@ class WordAssociationEngine(BaseGameEngine):
     ]
 
     MAX_ROUNDS = 12
-    TURN_TIMEOUT = 30.0  # seconds - increased for LLM response time
+    TURN_TIMEOUT = 10.0  # seconds
     MAX_RETRIES = 2
 
     def __init__(self, initial_state: Optional[str] = None) -> None:
@@ -75,40 +75,16 @@ class WordAssociationEngine(BaseGameEngine):
         self.completed: bool = False
 
         if initial_state:
-            # Check if initial_state is a JSON string with custom prompts or a game state
-            try:
-                data = json.loads(initial_state)
-                # If it has custom_prompts, use them; otherwise load as game state
-                if "custom_prompts" in data:
-                    self._prompts = data["custom_prompts"]
-                    self.MAX_ROUNDS = min(len(self._prompts), self.MAX_ROUNDS)
-                    self.reset()
-                else:
-                    self._load_state(initial_state)
-            except (json.JSONDecodeError, TypeError):
-                # Not JSON, treat as game state string or use defaults
-                self._load_state(initial_state) if initial_state else self.reset()
+            self._load_state(initial_state)
         else:
             self.reset()
 
     def reset(self, initial_state: Optional[str] = None) -> None:
         if initial_state:
-            try:
-                data = json.loads(initial_state)
-                if "custom_prompts" in data:
-                    self._prompts = data["custom_prompts"]
-                    self.MAX_ROUNDS = min(len(self._prompts), self.MAX_ROUNDS)
-                else:
-                    self._load_state(initial_state)
-                    return
-            except (json.JSONDecodeError, TypeError):
-                self._load_state(initial_state)
-                return
+            self._load_state(initial_state)
+            return
 
-        # Use default prompts if no custom prompts provided
-        if not self._prompts:
-            self._prompts = random.sample(self.PROMPTS, k=len(self.PROMPTS))
-        
+        self._prompts = random.sample(self.PROMPTS, k=len(self.PROMPTS))
         self.current_round = 0
         self.history = []
         self.scores = {"white": 0, "black": 0}
@@ -281,9 +257,7 @@ class WordAssociationEngine(BaseGameEngine):
 
     def register_timeout(self) -> None:
         if not self.is_game_over():
-            # Register failure for the side that timed out
-            timed_out_side = self.turn
-            self._register_failure(timed_out_side, None, f"timeout - {timed_out_side} failed to produce response in time")
+            self._register_failure(self.turn, None, "timeout")
 
     def force_failure(self, reason: str) -> None:
         if not self.is_game_over():
@@ -294,15 +268,10 @@ class WordAssociationEngine(BaseGameEngine):
             return {"status": "ongoing", "result": "*"}
 
         if self.failure_reason:
-            # Format the result message based on failure reason
-            if "timeout" in self.failure_reason.lower():
-                result_msg = f"{self.winner} wins - {self.failure_side} failed to respond in time"
-            else:
-                result_msg = f"{self.winner} wins"
             return {
                 "status": "ended",
                 "winner": self.winner,
-                "result": result_msg,
+                "result": f"{self.winner} wins",
                 "reason": self.failure_reason,
             }
 

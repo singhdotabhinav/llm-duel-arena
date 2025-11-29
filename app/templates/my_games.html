@@ -169,17 +169,14 @@
     </div>
   </div>
 
-  <script src="/static/js/config.js"></script>
   <script>
     async function loadMyGames() {
       try {
-        const url = window.getApiUrl ? window.getApiUrl('/api/games/my-games') : '/api/games/my-games';
-        const res = await fetch(url);
+        const res = await fetch('/api/games/my-games');
         if (!res.ok) {
           if (res.status === 401) {
             // Not logged in
-            const loginUrl = window.getApiUrl ? window.getApiUrl('/api/auth/login') : '/auth/login';
-            window.location.href = loginUrl;
+            window.location.href = '/auth/login';
             return;
           }
           throw new Error(`HTTP ${res.status}`);

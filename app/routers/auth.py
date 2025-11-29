@@ -42,16 +42,6 @@ sessions = {}
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     """Get current logged-in user from session"""
-    # Check for Starlette Session (Cognito)
-    if 'user' in request.session:
-        user_data = request.session['user']
-        email = user_data.get('email')
-        if email:
-            user = db.query(User).filter(User.email == email).first()
-            if user:
-                return user
-
-    # Fallback to custom session_id (Google OAuth legacy)
     session_id = request.cookies.get("session_id")
     if not session_id or session_id not in sessions:
         return None

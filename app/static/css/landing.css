@@ -281,28 +281,11 @@ button.btn-minimal {
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  display: inline-block; /* Ensure button is visible */
-  text-decoration: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.95rem;
 }
 
 .btn-auth:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
-}
-
-.btn-auth:active {
-  transform: translateY(0);
-}
-
-/* Ensure login button is visible by default */
-#login-btn {
-  display: inline-block !important;
-}
-
-#login-btn[style*="display: none"] {
-  display: none !important;
 }
 
 .user-info {

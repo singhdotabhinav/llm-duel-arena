@@ -10,7 +10,17 @@ class TicTacToeEngine(BaseGameEngine):
     
     def __init__(self, initial_state: Optional[str] = None) -> None:
         self.board = self._parse_state(initial_state) if initial_state else [['', '', ''] for _ in range(3)]
-        self.current_player = 'X'  # X goes first
+        
+        # Determine current player based on board state
+        # Count X's and O's to figure out whose turn it is
+        x_count = sum(row.count('X') for row in self.board)
+        o_count = sum(row.count('O') for row in self.board)
+        
+        # If equal, X goes next. If X has one more, O goes next.
+        if x_count == o_count:
+            self.current_player = 'X'
+        else:
+            self.current_player = 'O'
     
     def _parse_state(self, state: str) -> List[List[str]]:
         """Parse state string like 'X-O-X-O-X-O-X-O-X' or '---------'"""

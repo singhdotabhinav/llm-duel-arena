@@ -195,26 +195,33 @@ async def reset_game(game_id: str, req: Optional[CreateGameRequest] = None):
     return _to_schema(state)
 
 
+@router.post("/{game_id}/process_turn")
+async def process_turn(game_id: str):
+    """
+    Trigger the AI to process a single turn.
+    Called by the client when it detects it's the AI's turn.
+    """
+    result = await match_runner.process_turn(game_id)
+    return result
+
+
 @router.post("/{game_id}/start_autoplay")
 async def start_autoplay(game_id: str, req: CreateGameRequest):
+    # Deprecated: Client drives the game now.
+    # We just ensure the game exists.
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
-    white = req.white_model or state.white_model
-    black = req.black_model or state.black_model
-    if not white or not black:
-        raise HTTPException(status_code=400, detail="Both models must be specified")
-    match_runner.start(game_id, white, black)
     return {"status": "started"}
 
 
 @router.post("/{game_id}/pause")
 async def pause_autoplay(game_id: str):
-    match_runner.pause(game_id)
+    # Deprecated
     return {"status": "paused"}
 
 
 @router.post("/{game_id}/resume")
 async def resume_autoplay(game_id: str):
-    match_runner.resume(game_id)
+    # Deprecated
     return {"status": "resumed"}

@@ -2,6 +2,28 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: LLM Duel Arena - Serverless Deployment
 
+Parameters:
+  HuggingFaceApiToken:
+    Type: String
+    Description: API Token for Hugging Face
+    NoEcho: true
+    Default: ""
+  OpenAiApiKey:
+    Type: String
+    Description: API Key for OpenAI
+    NoEcho: true
+    Default: ""
+  AnthropicApiKey:
+    Type: String
+    Description: API Key for Anthropic
+    NoEcho: true
+    Default: ""
+  AppSecretKey:
+    Type: String
+    Description: Secret key for session management
+    NoEcho: true
+    Default: "change_me_in_prod"
+
 Globals:
   Function:
     Timeout: 30
@@ -12,6 +34,13 @@ Globals:
         AWS_REGION_NAME: !Ref AWS::Region
         DYNAMODB_TABLE_USERS: LLM-Duel-Users
         DYNAMODB_TABLE_ACTIVE_GAMES: LLM-Duel-ActiveGames
+        DEPLOYMENT_MODE: aws
+        HUGGINGFACE_API_TOKEN: !Ref HuggingFaceApiToken
+        OPENAI_API_KEY: !Ref OpenAiApiKey
+        ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+        APP_SECRET_KEY: !Ref AppSecretKey
+        # Disable local model in Lambda to save space/memory
+        ENABLE_LOCAL_MODEL: "false"
 
 Resources:
   # Lambda Function

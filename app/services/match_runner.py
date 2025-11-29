@@ -162,6 +162,8 @@ class MatchRunner:
                 else:
                     tokens_this_move = 50  # Default estimate
             
+            print(f"[MatchRunner] Move: {move}, Tokens This Move: {tokens_this_move}, Adapter Total: {adapter.tokens_used}")
+
             # Update the move record and total token counts if move succeeded
             if move is not None:
                 consecutive_failures = 0
@@ -180,8 +182,10 @@ class MatchRunner:
                     # Update total token counts: replace the 0 we added with actual tokens
                     if move_side == "white":
                         state.white_tokens = current_white + tokens_this_move
+                        print(f"[MatchRunner] Updated White Tokens: {state.white_tokens}")
                     else:
                         state.black_tokens = current_black + tokens_this_move
+                        print(f"[MatchRunner] Updated Black Tokens: {state.black_tokens}")
                 
                 ctrl.tokens_used += tokens_this_move
                 
@@ -217,7 +221,17 @@ class MatchRunner:
                     legal = engine.legal_moves()
                     if legal and len(legal) > 0:
                         fallback_move = random.choice(legal)
-                        game_manager.push_move(game_id, fallback_move, model_name=f"fallback:{adapter.model_name}", error=error)
+                        fallback_state = game_manager.push_move(
+                            game_id, 
+                            fallback_move, 
+                            model_name=f"fallback:{adapter.model_name}", 
+                            error=error,
+                            tokens_used=tokens_this_move
+                        )
+                        if fallback_state:
+                            consecutive_failures = 0
+                            print(f"[MatchRunner] Fallback move successful: {fallback_move}")
+                        
                         # Check if game is over after fallback
                         state = game_manager.get_state(game_id)
                         if state and state.over:
@@ -226,6 +240,14 @@ class MatchRunner:
                     elif st.game_type == "word_association_clash":
                         # For word association, if we can't get a move, register a failure
                         if hasattr(engine, "force_failure"):
+                            # Manually update tokens before failure
+                            state = game_manager.get_state(game_id)
+                            if state:
+                                if adapter == white:
+                                    state.white_tokens += tokens_this_move
+                                else:
+                                    state.black_tokens += tokens_this_move
+                            
                             engine.force_failure(error or "no-response")
                             state = game_manager.get_state(game_id)
                             if engine.is_game_over():

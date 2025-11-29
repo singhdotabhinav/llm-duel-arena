@@ -46,8 +46,6 @@ jobs:
             --resolve-s3 \
             --parameter-overrides \
               HuggingFaceApiToken=${{ secrets.HUGGINGFACE_API_TOKEN }} \
-              OpenAiApiKey=${{ secrets.OPENAI_API_KEY }} \
-              AnthropicApiKey=${{ secrets.ANTHROPIC_API_KEY }} \
               AppSecretKey=${{ secrets.APP_SECRET_KEY }}
       
       - name: Get API URL

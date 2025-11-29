@@ -152,8 +152,10 @@ class GameManager:
         # Update total token counts for each side
         if side == "white":
             state.white_tokens += tokens_used
+            print(f"[GameManager] Updated White Tokens: {state.white_tokens} (added {tokens_used})")
         else:
             state.black_tokens += tokens_used
+            print(f"[GameManager] Updated Black Tokens: {state.black_tokens} (added {tokens_used})")
         
         return self.get_state(game_id)
 

@@ -21,7 +21,11 @@ class ModelAdapter(abc.ABC):
 
 class RandomFallbackAdapter(ModelAdapter):
     async def get_move(self, engine: ChessEngine) -> Tuple[Optional[str], Optional[str]]:
-        legal = engine.legal_moves_uci()
+        if hasattr(engine, "legal_moves_uci"):
+            legal = engine.legal_moves_uci()
+        else:
+            legal = engine.legal_moves()
+            
         if not legal:
             return None, "no legal moves"
         return random.choice(legal), None

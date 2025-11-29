@@ -37,6 +37,8 @@ Resources:
           Properties:
             Path: /
             Method: ANY
+    Metadata:
+      BuildMethod: python3.11
 
   # DynamoDB Table for Users (if not exists)
   UsersTable:

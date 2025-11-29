@@ -167,12 +167,10 @@
     </div>
   </div>
 
-  <script src="/static/js/config.js"></script>
   <script>
     async function loadGames() {
       try {
-        const url = window.getApiUrl ? window.getApiUrl('/api/games/list') : '/api/games/list';
-        const res = await fetch(url);
+        const res = await fetch('/api/games/list');
         const data = await res.json();
         const grid = document.getElementById('games-grid');
         

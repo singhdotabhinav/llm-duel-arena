@@ -72,8 +72,7 @@ function addLog(msg){ const li=document.createElement('li'); li.textContent=msg;
 function clearLog(){ logEl.innerHTML = ''; }
 
 async function api(path, opts={}){
-  const url = window.getApiUrl ? window.getApiUrl(`/api/games${path}`) : `/api/games${path}`;
-  const res = await fetch(url, { headers: {'Content-Type':'application/json'}, ...opts, });
+  const res = await fetch(`/api/games${path}`, { headers: {'Content-Type':'application/json'}, ...opts, });
   if(!res.ok){ throw new Error(`API ${res.status}`); }
   return await res.json();
 }

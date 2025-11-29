@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: LLM Duel Arena - Serverless Deployment
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        AWS_REGION_NAME: !Ref AWS::Region
+        DYNAMODB_TABLE_USERS: LLM-Duel-Users
+        DYNAMODB_TABLE_ACTIVE_GAMES: LLM-Duel-ActiveGames
+
+Resources:
+  # Lambda Function
+  LLMDuelArenaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.lambda_handler.handler
+      Description: LLM Duel Arena FastAPI application
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: LLM-Duel-Users
+        - DynamoDBCrudPolicy:
+            TableName: LLM-Duel-ActiveGames
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        RootEvent:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+
+  # DynamoDB Table for Users (if not exists)
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LLM-Duel-Users
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # DynamoDB Table for Active Games (if not exists)
+  ActiveGamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LLM-Duel-ActiveGames
+      AttributeDefinitions:
+        - AttributeName: game_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: game_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt LLMDuelArenaFunction.Arn

@@ -175,6 +175,5 @@ async def get_user_info(request: Request):
     }
 
 
-# Initialize database on module import
-init_db()
+
 

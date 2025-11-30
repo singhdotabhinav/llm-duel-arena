@@ -16,7 +16,8 @@ import logging
 
 from app.core.config import settings
 from app.core.security import create_access_token
-from app.services.dynamodb_service import dynamodb_servicette_client import OAuth
+from app.services.dynamodb_service import dynamodb_service
+from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 
 router = APIRouter()

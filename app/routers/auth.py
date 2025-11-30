@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
+from typing import Optional
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
-from sqlalchemy.orm import Session
 from datetime import datetime
 import secrets
 import logging
 
-from ..core.config import settings
-from ..database import get_db, User, init_db
+from app.core.config import settings
+from app.core.security import create_access_token, verify_password, get_password_hash
+from app.services.dynamodb_service import dynamo_db_servicer, init_db
 
 router = APIRouter()
 

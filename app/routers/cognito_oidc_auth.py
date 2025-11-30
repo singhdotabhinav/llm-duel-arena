@@ -1,17 +1,22 @@
+```python
 """
 AWS Cognito OIDC Authentication Router using authlib
 Implements OAuth 2.0 / OpenID Connect flow with Cognito Hosted UI
 """
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-from datetime import datetime
 from typing import Optional
+import httpx
+import jwt
+from jwt.algorithms import RSAAlgorithm
+import json
+import base64
+import struct
 import logging
 
-from ..core.config import settings
-from ..database import get_db, User, init_db
-from authlib.integrations.starlette_client import OAuth
+from app.core.config import settings
+from app.core.security import create_access_token
+from app.services.dynamodb_service import dynamo_db_servicette_client import OAuth
 from starlette.config import Config
 
 router = APIRouter()

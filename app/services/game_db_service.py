@@ -1,7 +1,9 @@
 """Service to save games to database"""
-from sqlalchemy.orm import Session
-from ..database import Game, SessionLocal
-from .game_manager import GameState as GameManagerState
+from typing import List, Optional
+from datetime import datetime
+
+from app.schemas import GameState as GameStateSchema, MoveRecord as MoveRecordSchema
+from app.services.dynamodb_service import dynamo_db_service
 import json
 
 

@@ -1,10 +1,10 @@
+```
 """
 AWS Cognito Authentication Router
 Handles signup, login, token verification, and user management via Cognito
 """
-from fastapi import APIRouter, Request, HTTPException, Depends, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse, JSONResponse
-from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr
@@ -12,7 +12,6 @@ import logging
 import secrets
 
 from ..core.config import settings
-from ..database import get_db, User, init_db
 from ..services.cognito_service import cognito_service
 
 router = APIRouter()

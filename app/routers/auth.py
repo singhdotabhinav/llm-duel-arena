@@ -43,7 +43,7 @@ oauth.register(
 sessions = {}
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)):
+def get_current_user(request: Request):
     """Get current logged-in user from session"""
     # Check for Starlette Session (Cognito)
     if 'user' in request.session:
@@ -85,7 +85,7 @@ async def login(request: Request):
 
 
 @router.get("/callback")
-async def auth_callback(request: Request, db: Session = Depends(get_db)):
+async def auth_callback(request: Request):
     """Handle Google OAuth callback"""
     try:
         logger.info("[OAuth] /auth/callback invoked. Incoming session: %s", dict(request.session))
@@ -158,7 +158,7 @@ async def logout(request: Request):
 
 
 @router.get("/user")
-async def get_user_info(request: Request, db: Session = Depends(get_db)):
+async def get_user_info(request: Request):
     """Get current user info (API endpoint for frontend)"""
     user = get_current_user(request, db)
     if not user:

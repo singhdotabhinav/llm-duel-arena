@@ -68,7 +68,7 @@ async def list_games():
 
 
 @router.get("/my-games")
-async def get_my_games(request: Request, db: Session = Depends(get_db)):
+async def get_my_games(request: Request):
     """Get games for the logged-in user from DynamoDB"""
     user = get_current_user(request, db)
     if not user:
@@ -109,7 +109,7 @@ async def get_my_games(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/random_duel")
-async def random_duel(req: CreateGameRequest, request: Request, db: Session = Depends(get_db)):
+async def random_duel(req: CreateGameRequest, request: Request):
     """Start a random duel with default models"""
     import random
     import logging
@@ -146,7 +146,7 @@ async def random_duel(req: CreateGameRequest, request: Request, db: Session = De
 
 
 @router.post("/", response_model=GameStateSchema)
-async def create_game(req: CreateGameRequest, request: Request, db: Session = Depends(get_db)):
+async def create_game(req: CreateGameRequest, request: Request):
     game_type = req.game_type or "chess"
     initial_state = req.initial_state or req.fen
     state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state)
@@ -169,7 +169,7 @@ async def get_state(game_id: str):
 
 
 @router.post("/{game_id}/move", response_model=GameStateSchema)
-async def post_move(game_id: str, req: MoveRequest, request: Request, db: Session = Depends(get_db)):
+async def post_move(game_id: str, req: MoveRequest, request: Request):
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")

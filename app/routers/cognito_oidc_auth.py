@@ -46,7 +46,7 @@ if settings.cognito_client_secret:
 oauth.register(**register_kwargs)
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)):
+def get_current_user(request: Request):
     """Get current logged-in user from session"""
     user_data = request.session.get('user')
     if not user_data:
@@ -238,7 +238,7 @@ async def login(request: Request):
 
 
 @router.get("/callback")
-async def authorize(request: Request, db: Session = Depends(get_db)):
+async def authorize(request: Request):
     """Handle Cognito OAuth callback and retrieve user data"""
     # Log all query parameters for debugging
     logger.info(f"[Cognito OIDC] Callback received with params: {dict(request.query_params)}")
@@ -477,7 +477,7 @@ async def logout(request: Request):
 
 
 @router.get("/user")
-async def get_user_info(request: Request, db: Session = Depends(get_db)):
+async def get_user_info(request: Request):
     """Get current user info (API endpoint for frontend)"""
     user = get_current_user(request, db)
     if not user:

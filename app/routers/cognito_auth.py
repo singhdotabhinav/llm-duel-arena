@@ -53,7 +53,7 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)):
+def get_current_user(request: Request):
     """Get current logged-in user from JWT token"""
     # Try to get token from Authorization header
     auth_header = request.headers.get("Authorization", "")
@@ -102,7 +102,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/signup")
-async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
+async def signup(request: SignUpRequest):
     """Register a new user"""
     if not settings.use_cognito:
         raise HTTPException(status_code=500, detail="Cognito is not enabled")
@@ -127,7 +127,7 @@ async def signup(request: SignUpRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/confirm-signup")
-async def confirm_signup(request: ConfirmSignUpRequest, db: Session = Depends(get_db)):
+async def confirm_signup(request: ConfirmSignUpRequest):
     """Confirm user signup with verification code"""
     if not settings.use_cognito:
         raise HTTPException(status_code=500, detail="Cognito is not enabled")
@@ -142,7 +142,7 @@ async def confirm_signup(request: ConfirmSignUpRequest, db: Session = Depends(ge
 
 
 @router.post("/login")
-async def login(request: LoginRequest, db: Session = Depends(get_db)):
+async def login(request: LoginRequest):
     """Authenticate user and return tokens"""
     if not settings.use_cognito:
         raise HTTPException(status_code=500, detail="Cognito is not enabled")
@@ -269,7 +269,7 @@ async def logout(request: Request):
 
 
 @router.get("/user")
-async def get_user_info(request: Request, db: Session = Depends(get_db)):
+async def get_user_info(request: Request):
     """Get current user info"""
     user = get_current_user(request, db)
     if not user:

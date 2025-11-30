@@ -11,7 +11,7 @@ import logging
 
 from app.core.config import settings
 from app.core.security import create_access_token, verify_password, get_password_hash
-from app.services.dynamodb_service import dynamo_db_servicer, init_db
+from app.services.dynamodb_service import dynamodb_servicer, init_db
 
 router = APIRouter()
 

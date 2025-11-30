@@ -11,8 +11,8 @@ from pydantic import BaseModel, EmailStr
 import logging
 import secrets
 
-from ..core.config import settings
-from ..services.cognito_service import cognito_service
+from app.core.config import settings
+from app.services.dynamodb_service import dynamodb_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

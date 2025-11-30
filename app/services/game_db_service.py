@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.schemas import GameState as GameStateSchema, MoveRecord as MoveRecordSchema
-from app.services.dynamodb_service import dynamo_db_service
+from app.services.dynamodb_service import dynamodb_service
 import json
 
 

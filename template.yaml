@@ -47,6 +47,15 @@ Globals:
 
 Resources:
   # Lambda Function
+  # Define the HTTP API explicitly to configure throttling
+  ServerlessHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+
   LLMDuelArenaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -59,12 +68,16 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: LLM-Duel-ActiveGames
         - CloudWatchLambdaInsightsExecutionRolePolicy
+      # Limit concurrent executions to prevent cost spikes
+      ReservedConcurrentExecutions: 10
       Events:
         ApiEvent:
           Type: HttpApi
           Properties:
             Path: /{proxy+}
             Method: ANY
+            # Basic throttling (requires API Gateway v2 Stage resource for fine-grained control, 
+            # but this is a good start if using REST API. For HTTP API, we configure the Stage below)
         RootEvent:
           Type: HttpApi
           Properties:

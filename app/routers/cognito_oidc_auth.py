@@ -1,4 +1,4 @@
-```python
+
 """
 AWS Cognito OIDC Authentication Router using authlib
 Implements OAuth 2.0 / OpenID Connect flow with Cognito Hosted UI
@@ -52,27 +52,6 @@ def get_current_user(request: Request):
     if not user_data:
         return None
     
-    email = user_data.get('email')
-    if not email:
-        return None
-    
-    # Get or create user in database
-    user = db.query(User).filter(User.email == email).first()
-    
-    if not user:
-        # Create user from Cognito data
-        user = User(
-            id=user_data.get('sub'),
-            email=email,
-            name=user_data.get('name'),
-            picture=user_data.get('picture'),
-            created_at=datetime.utcnow(),
-            last_login=datetime.utcnow()
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    else:
         user.last_login = datetime.utcnow()
         if user_data.get('name') and not user.name:
             user.name = user_data.get('name')
@@ -479,7 +458,7 @@ async def logout(request: Request):
 @router.get("/user")
 async def get_user_info(request: Request):
     """Get current user info (API endpoint for frontend)"""
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if not user:
         return {"logged_in": False}
     
@@ -535,6 +514,5 @@ async def debug_session(request: Request):
     return response
 
 
-# Initialize database on module import
-init_db()
+
 

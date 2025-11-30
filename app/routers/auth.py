@@ -50,21 +50,40 @@ def get_current_user(request: Request):
         user_data = request.session['user']
         email = user_data.get('email')
         if email:
-            user = db.query(User).filter(User.email == email).first()
-            if user:
-                return user
+            # Return a simple object or dict that mimics the User model
+            # For now, just returning the session data is often enough, 
+            # but let's try to get from DynamoDB if needed.
+            # user = dynamodb_service.get_user(email)
+            # return user
+            
+            # Actually, the session data usually has what we need (id, email, name)
+            # Let's return a simple object
+            class UserObj:
+                def __init__(self, data):
+                    self.id = data.get('sub') or data.get('id') or data.get('email')
+                    self.email = data.get('email')
+                    self.name = data.get('name')
+                    self.picture = data.get('picture')
+            return UserObj(user_data)
 
     # Fallback to custom session_id (Google OAuth legacy)
     session_id = request.cookies.get("session_id")
     if not session_id or session_id not in sessions:
         return None
     
-    user_email = sessions[session_id].get("email")
-    if not user_email:
+    # The session store already holds the user data for legacy Google OAuth
+    # We can construct a UserObj from it directly.
+    session_data = sessions[session_id]
+    if not session_data:
         return None
     
-    user = db.query(User).filter(User.email == user_email).first()
-    return user
+    class UserObj:
+        def __init__(self, data):
+            self.id = data.get('user_id') or data.get('email') # Assuming user_id is stored
+            self.email = data.get('email')
+            self.name = data.get('name')
+            self.picture = data.get('picture')
+    return UserObj(session_data)
 
 
 @router.get("/login")

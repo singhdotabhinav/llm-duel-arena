@@ -92,4 +92,4 @@ infrastructure/lambda-packages/
 # Lambda
 *.zip
 lambda-package/
-
+run_local.sh

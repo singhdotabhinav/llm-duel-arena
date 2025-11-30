@@ -70,7 +70,7 @@ async def list_games():
 @router.get("/my-games")
 async def get_my_games(request: Request):
     """Get games for the logged-in user from DynamoDB"""
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
@@ -135,7 +135,7 @@ async def random_duel(req: CreateGameRequest, request: Request):
     state = game_manager.create_game(game_type, white, black, initial_state)
     
     # Save to database if user is logged in
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if user:
         save_game_to_db(state, user.id)
     
@@ -152,7 +152,7 @@ async def create_game(req: CreateGameRequest, request: Request):
     state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state)
     
     # Save to database if user is logged in
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if user:
         save_game_to_db(state, user.id)
     
@@ -176,7 +176,7 @@ async def post_move(game_id: str, req: MoveRequest, request: Request):
     updated = game_manager.push_move(game_id, req.move, model_name="manual")
     
     # Update database if user is logged in
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if user:
         save_game_to_db(updated, user.id)
     

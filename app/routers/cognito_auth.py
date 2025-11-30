@@ -1,4 +1,3 @@
-```
 """
 AWS Cognito Authentication Router
 Handles signup, login, token verification, and user management via Cognito
@@ -13,6 +12,7 @@ import secrets
 
 from app.core.config import settings
 from app.services.dynamodb_service import dynamodb_service
+from app.services.cognito_service import cognito_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -72,33 +72,36 @@ def get_current_user(request: Request):
         return None
     
     # Get user from database
-    user_sub = decoded.get('sub')
     email = decoded.get('email')
     
     if not email:
         return None
     
-    user = db.query(User).filter(User.email == email).first()
+    user_data = dynamodb_service.get_user(email)
     
     # Create user if doesn't exist (first login)
-    if not user:
-        user = User(
-            id=user_sub,
-            email=email,
-            name=decoded.get('name'),
-            created_at=datetime.utcnow(),
-            last_login=datetime.utcnow()
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+    if not user_data:
+        user_data = {
+            'email': email,
+            'name': decoded.get('name'),
+            'sub': decoded.get('sub'),
+            'created_at': datetime.utcnow().isoformat(),
+            'last_login': datetime.utcnow().isoformat()
+        }
+        dynamodb_service.create_user(email, user_data)
     else:
-        user.last_login = datetime.utcnow()
-        if decoded.get('name') and not user.name:
-            user.name = decoded.get('name')
-        db.commit()
+        # Update last login
+        dynamodb_service.update_user_login(email)
     
-    return user
+    # Return object wrapper
+    class UserObj:
+        def __init__(self, data):
+            self.id = data.get('sub') or data.get('id') or data.get('email')
+            self.email = data.get('email')
+            self.name = data.get('name')
+            self.picture = data.get('picture')
+            
+    return UserObj(user_data)
 
 
 @router.post("/signup")
@@ -107,8 +110,8 @@ async def signup(request: SignUpRequest):
     if not settings.use_cognito:
         raise HTTPException(status_code=500, detail="Cognito is not enabled")
     
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == request.email).first()
+    # Check if user already exists in DynamoDB
+    existing_user = dynamodb_service.get_user(request.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
     
@@ -169,23 +172,21 @@ async def login(request: LoginRequest):
     if not user_info:
         raise HTTPException(status_code=500, detail="Failed to get user information")
     
-    # Get or create user in database
-    user = db.query(User).filter(User.email == user_info['email']).first()
-    if not user:
-        user = User(
-            id=user_info['sub'],
-            email=user_info['email'],
-            name=user_info.get('name'),
-            created_at=datetime.utcnow(),
-            last_login=datetime.utcnow()
-        )
-        db.add(user)
-    else:
-        user.last_login = datetime.utcnow()
-        if user_info.get('name') and not user.name:
-            user.name = user_info['name']
+    # Get or create user in DynamoDB
+    email = user_info['email']
+    user_data = dynamodb_service.get_user(email)
     
-    db.commit()
+    if not user_data:
+        user_data = {
+            'email': email,
+            'sub': user_info['sub'],
+            'name': user_info.get('name'),
+            'created_at': datetime.utcnow().isoformat(),
+            'last_login': datetime.utcnow().isoformat()
+        }
+        dynamodb_service.create_user(email, user_data)
+    else:
+        dynamodb_service.update_user_login(email)
     
     # Create session
     session_id = secrets.token_urlsafe(32)
@@ -193,7 +194,7 @@ async def login(request: LoginRequest):
         "access_token": access_token,
         "refresh_token": result.get('refresh_token'),
         "id_token": result.get('id_token'),
-        "email": user_info['email'],
+        "email": email,
         "user_id": user_info['sub']
     }
     
@@ -205,9 +206,9 @@ async def login(request: LoginRequest):
         "id_token": result.get('id_token'),
         "expires_in": result.get('expires_in'),
         "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name
+            "id": user_data.get('sub'),
+            "email": email,
+            "name": user_data.get('name')
         }
     })
     
@@ -271,7 +272,7 @@ async def logout(request: Request):
 @router.get("/user")
 async def get_user_info(request: Request):
     """Get current user info"""
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if not user:
         return {"logged_in": False}
     
@@ -342,8 +343,7 @@ async def hosted_ui_login(redirect_uri: Optional[str] = None):
 async def auth_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
-    error: Optional[str] = None,
-    db: Session = Depends(get_db)
+    error: Optional[str] = None
 ):
     """Handle Cognito OAuth callback"""
     if error:
@@ -357,8 +357,4 @@ async def auth_callback(
     # Frontend should exchange code for tokens
     
     return RedirectResponse(url=f"/?code={code}&state={state}", status_code=302)
-
-
-# Initialize database on module import
-init_db()
 

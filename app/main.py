@@ -7,7 +7,6 @@ from starlette.middleware.sessions import SessionMiddleware
 from .core.config import settings
 from .core.logging import configure_logging
 from .routers import games, auth
-from .database import init_db
 
 configure_logging()
 
@@ -28,9 +27,6 @@ app.add_middleware(
     # Starlette will automatically set domain=None which allows cookie for localhost
     # Explicitly setting domain=None might cause issues, so we omit it
 )
-
-# Initialize database
-init_db()
 
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 templates = Jinja2Templates(directory=str(settings.templates_dir))

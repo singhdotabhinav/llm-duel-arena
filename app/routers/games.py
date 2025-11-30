@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
-from sqlalchemy.orm import Session
 from typing import Optional
 from ..services.game_manager import game_manager
 from ..services.match_runner import match_runner
 from ..services.game_db_service import save_game_to_db, get_user_games
 from ..schemas import CreateGameRequest, MoveRequest, GameState as GameStateSchema, MoveRecord as MoveRecordSchema
 from ..routers.auth import get_current_user
-from ..database import get_db
 
 router = APIRouter()
 
@@ -70,9 +68,9 @@ async def list_games():
 
 
 @router.get("/my-games")
-async def get_my_games(request: Request, db: Session = Depends(get_db)):
+async def get_my_games(request: Request):
     """Get games for the logged-in user from DynamoDB"""
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
@@ -111,7 +109,7 @@ async def get_my_games(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/random_duel")
-async def random_duel(req: CreateGameRequest, request: Request, db: Session = Depends(get_db)):
+async def random_duel(req: CreateGameRequest, request: Request):
     """Start a random duel with default models"""
     import random
     import logging
@@ -137,7 +135,7 @@ async def random_duel(req: CreateGameRequest, request: Request, db: Session = De
     state = game_manager.create_game(game_type, white, black, initial_state)
     
     # Save to database if user is logged in
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if user:
         save_game_to_db(state, user.id)
     
@@ -148,13 +146,13 @@ async def random_duel(req: CreateGameRequest, request: Request, db: Session = De
 
 
 @router.post("/", response_model=GameStateSchema)
-async def create_game(req: CreateGameRequest, request: Request, db: Session = Depends(get_db)):
+async def create_game(req: CreateGameRequest, request: Request):
     game_type = req.game_type or "chess"
     initial_state = req.initial_state or req.fen
     state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state)
     
     # Save to database if user is logged in
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if user:
         save_game_to_db(state, user.id)
     
@@ -171,14 +169,14 @@ async def get_state(game_id: str):
 
 
 @router.post("/{game_id}/move", response_model=GameStateSchema)
-async def post_move(game_id: str, req: MoveRequest, request: Request, db: Session = Depends(get_db)):
+async def post_move(game_id: str, req: MoveRequest, request: Request):
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
     updated = game_manager.push_move(game_id, req.move, model_name="manual")
     
     # Update database if user is logged in
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if user:
         save_game_to_db(updated, user.id)
     
@@ -195,26 +193,33 @@ async def reset_game(game_id: str, req: Optional[CreateGameRequest] = None):
     return _to_schema(state)
 
 
+@router.post("/{game_id}/process_turn")
+async def process_turn(game_id: str):
+    """
+    Trigger the AI to process a single turn.
+    Called by the client when it detects it's the AI's turn.
+    """
+    result = await match_runner.process_turn(game_id)
+    return result
+
+
 @router.post("/{game_id}/start_autoplay")
 async def start_autoplay(game_id: str, req: CreateGameRequest):
+    # Deprecated: Client drives the game now.
+    # We just ensure the game exists.
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
-    white = req.white_model or state.white_model
-    black = req.black_model or state.black_model
-    if not white or not black:
-        raise HTTPException(status_code=400, detail="Both models must be specified")
-    match_runner.start(game_id, white, black)
     return {"status": "started"}
 
 
 @router.post("/{game_id}/pause")
 async def pause_autoplay(game_id: str):
-    match_runner.pause(game_id)
+    # Deprecated
     return {"status": "paused"}
 
 
 @router.post("/{game_id}/resume")
 async def resume_autoplay(game_id: str):
-    match_runner.resume(game_id)
+    # Deprecated
     return {"status": "resumed"}

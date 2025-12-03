@@ -7,26 +7,49 @@ from starlette.middleware.sessions import SessionMiddleware
 from .core.config import settings
 from .core.logging import configure_logging
 from .routers import games, auth
+from .middleware.security import (
+    setup_cors,
+    setup_rate_limiting,
+    add_security_headers,
+    error_handler_middleware
+)
 
 configure_logging()
 
-app = FastAPI(title=settings.app_name)
+app = FastAPI(
+    title=settings.app_name,
+    debug=settings.debug if settings.is_local else False  # Disable debug in production
+)
 
-# Add SessionMiddleware for OAuth (required by authlib)
-# Configure for localhost development
-# IMPORTANT: SessionMiddleware must be added BEFORE routers
+# IMPORTANT: Middleware order matters! Add in reverse order of execution
+# 1. Error handler (outermost - catches all errors)
+error_handler_middleware(app)
+
+# 2. Security headers
+add_security_headers(app)
+
+# 3. CORS (after security headers but before auth)
+setup_cors(app, cors_origins=settings.cors_origins)
+
+# 4. Rate limiting
+if settings.enable_rate_limiting:
+    setup_rate_limiting(app)
+
+# 5. Session middleware (must be after rate limiting, before routers)
+# Configure session cookies based on deployment mode
 app.add_middleware(
     SessionMiddleware, 
     secret_key=settings.secret_key,
     session_cookie="session",
     max_age=3600,  # 1 hour (increased for OAuth flow)
     same_site="lax",
-    https_only=False,  # Set to True in production with HTTPS
+    https_only=(not settings.is_local),  # True in production, False in local development
     path="/",
     # CRITICAL: Don't set domain parameter at all
     # Starlette will automatically set domain=None which allows cookie for localhost
     # Explicitly setting domain=None might cause issues, so we omit it
 )
+
 
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 templates = Jinja2Templates(directory=str(settings.templates_dir))

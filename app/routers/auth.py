@@ -96,11 +96,21 @@ async def login(request: Request):
         )
     
     redirect_uri = settings.google_redirect_uri
+    
+    # Validate redirect URI against whitelist
+    if redirect_uri not in settings.allowed_redirect_uris:
+        logger.error(f"Invalid redirect URI: {redirect_uri}. Not in whitelist: {settings.allowed_redirect_uris}")
+        raise HTTPException(
+            status_code=500,
+            detail="OAuth redirect URI not properly configured. Contact administrator."
+        )
+    
     logger.info("[OAuth] /auth/login invoked. Session before authorize: %s", dict(request.session))
     response = await oauth.google.authorize_redirect(request, redirect_uri)
     logger.info("[OAuth] authorize_redirect returned. Session after authorize: %s", dict(request.session))
     logger.info("[OAuth] Response headers include set-cookie: %s", response.headers.get('set-cookie'))
     return response
+
 
 
 @router.get("/callback")

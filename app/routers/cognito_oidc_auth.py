@@ -76,6 +76,15 @@ async def login(request: Request):
     
     redirect_uri = settings.cognito_callback_url
     
+    # Validate redirect URI against whitelist
+    if redirect_uri not in settings.allowed_redirect_uris:
+        logger.error(f"Invalid Cognito redirect URI: {redirect_uri}. Not in whitelist: {settings.allowed_redirect_uris}")
+        raise HTTPException(
+            status_code=500,
+            detail="Cognito OAuth redirect URI not properly configured. Contact administrator."
+        )
+
+    
     # CRITICAL: Redirect 127.0.0.1 to localhost to ensure cookies match the callback URL
     # Cognito requires localhost for HTTP callbacks, so we must ensure the session is on localhost
     if request.url.hostname == '127.0.0.1':

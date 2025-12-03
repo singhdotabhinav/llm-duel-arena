@@ -67,6 +67,8 @@ Resources:
             TableName: LLM-Duel-Users
         - DynamoDBCrudPolicy:
             TableName: LLM-Duel-ActiveGames
+        - DynamoDBCrudPolicy:
+            TableName: LLM-Duel-Sessions
         - CloudWatchLambdaInsightsExecutionRolePolicy
       # Limit concurrent executions to prevent cost spikes
       ReservedConcurrentExecutions: 10
@@ -105,6 +107,19 @@ Resources:
         - AttributeName: email
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
+      # Enable Point-in-Time Recovery for backups
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      # Enable encryption with AWS managed key
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      # Add tags for cost tracking
+      Tags:
+        - Key: Application
+          Value: LLM-Duel-Arena
+        - Key: Environment
+          Value: Production
 
   # DynamoDB Table for Active Games (if not exists)
   ActiveGamesTable:
@@ -118,6 +133,67 @@ Resources:
         - AttributeName: game_id
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
+      # Enable Point-in-Time Recovery for backups
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      # Enable encryption with AWS managed key
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      Tags:
+        - Key: Application
+          Value: LLM-Duel-Arena
+        - Key: Environment
+          Value: Production
+
+  # DynamoDB Table for Sessions
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LLM-Duel-Sessions
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      # Enable TTL for automatic session expiration
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+      # Enable Point-in-Time Recovery
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      # Enable encryption
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      Tags:
+        - Key: Application
+          Value: LLM-Duel-Arena
+        - Key: Environment
+          Value: Production
+
+  # CloudWatch Billing Alarm
+  BillingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: LLM-Duel-Arena-Billing-Alert
+      AlarmDescription: Alert when estimated charges exceed $10
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Statistic: Maximum
+      Period: 21600  # 6 hours
+      EvaluationPeriods: 1
+      Threshold: 10.0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Currency
+          Value: USD
+      # Note: You need to add an SNS topic ARN here for notifications
+      # AlarmActions:
+      #   - !Ref BillingAlarmTopic
 
 Outputs:
   ApiUrl:
@@ -126,3 +202,7 @@ Outputs:
   FunctionArn:
     Description: "Lambda Function ARN"
     Value: !GetAtt LLMDuelArenaFunction.Arn
+  SessionsTableName:
+    Description: "Sessions DynamoDB table name"
+    Value: !Ref SessionsTable
+

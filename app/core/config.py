@@ -81,9 +81,44 @@ class Settings(BaseModel):
     move_retry_limit: int = int(os.getenv("MOVE_RETRY_LIMIT", "2"))
     token_budget_per_match: int = int(os.getenv("TOKEN_BUDGET_PER_MATCH", "20000"))
 
+    # Security Settings
+    # CORS - Comma-separated list of allowed origins
+    cors_origins_str: str = os.getenv("CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
+    
+    @property
+    def cors_origins(self) -> list:
+        """Parse CORS origins from comma-separated string"""
+        if self.deployment_mode == "aws" and not os.getenv("CORS_ORIGINS"):
+            # In production, if not explicitly set, default to wildcard (will need to be configured)
+            return ["*"]
+        return [origin.strip() for origin in self.cors_origins_str.split(",") if origin.strip()]
+    
+    # Rate limiting
+    enable_rate_limiting: bool = os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
+    
+    # Session storage
+    session_table_name: str = os.getenv("SESSION_TABLE_NAME", "LLM-Duel-Sessions")
+    use_dynamodb_sessions: bool = os.getenv("USE_DYNAMODB_SESSIONS", "false").lower() == "true"
+    
+    # Secrets Manager (optional for enhanced security)
+    use_secrets_manager: bool = os.getenv("USE_SECRETS_MANAGER", "false").lower() == "true"
+    secrets_manager_prefix: str = os.getenv("SECRETS_MANAGER_PREFIX", "llm-duel-arena")
+    
+    # OAuth allowed redirect URIs (for validation)
+    allowed_redirect_uris_str: str = os.getenv(
+        "ALLOWED_REDIRECT_URIS",
+        "http://localhost:8000/auth/callback,http://127.0.0.1:8000/auth/callback"
+    )
+    
+    @property
+    def allowed_redirect_uris(self) -> list:
+        """Parse allowed redirect URIs from comma-separated string"""
+        return [uri.strip() for uri in self.allowed_redirect_uris_str.split(",") if uri.strip()]
+
     # Deployment mode
     deployment_mode: str = os.getenv("DEPLOYMENT_MODE", "local")  # local or aws
     api_base_url: str = os.getenv("API_BASE_URL", "")  # Override API URL (for AWS)
+
     
     @property
     def is_local(self) -> bool:

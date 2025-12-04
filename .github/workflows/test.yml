@@ -77,7 +77,7 @@ jobs:
 
       - name: Check code formatting with Black
         run: |
-          black --check app/
+          black --check --line-length 127 app/
 
       - name: Lint with flake8
         run: |

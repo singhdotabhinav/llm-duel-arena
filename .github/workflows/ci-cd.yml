@@ -50,7 +50,7 @@ jobs:
 
       - name: Check code formatting (black)
         run: |
-          black --check app/
+          black --check --line-length 127 app/
 
       - name: Run type checking (mypy)
         run: |

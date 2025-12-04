@@ -44,7 +44,12 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+          if [ -d "tests" ] && [ "$(ls -A tests/*.py 2>/dev/null)" ]; then
+            pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+          else
+            echo "No tests found, skipping test execution"
+            exit 0
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

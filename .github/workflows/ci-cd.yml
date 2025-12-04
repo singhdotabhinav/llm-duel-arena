@@ -58,7 +58,14 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v --cov=app --cov-report=xml --cov-report=html || true
+          if [ -d "tests" ] && [ "$(ls -A tests/*.py 2>/dev/null)" ]; then
+            pytest tests/ -v --cov=app --cov-report=xml --cov-report=html || true
+          else
+            echo "No tests directory found, skipping tests"
+            echo "Creating basic test structure..."
+            mkdir -p tests
+            echo "# Tests will be added here" > tests/README.md
+          fi
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3

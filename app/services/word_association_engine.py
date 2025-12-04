@@ -108,7 +108,7 @@ class WordAssociationEngine(BaseGameEngine):
         # Use default prompts if no custom prompts provided
         if not self._prompts:
             self._prompts = random.sample(self.PROMPTS, k=len(self.PROMPTS))
-        
+
         self.current_round = 0
         self.history = []
         self.scores = {"white": 0, "black": 0}
@@ -356,4 +356,3 @@ class WordAssociationEngine(BaseGameEngine):
         )
         if not self.completed and not self.current_prompt:
             random.shuffle(self._prompts)
-

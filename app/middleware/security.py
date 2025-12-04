@@ -21,7 +21,7 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["100/minute"],
     storage_uri="memory://",  # Use memory storage (cheapest, works for single Lambda)
-    headers_enabled=True
+    headers_enabled=True,
 )
 
 
@@ -29,10 +29,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     Add security headers to all responses
     """
-    
+
     async def dispatch(self, request: Request, call_next: Callable):
         response = await call_next(request)
-        
+
         # Content Security Policy - restrict resource loading
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
@@ -42,29 +42,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "img-src 'self' data: https:; "
             "connect-src 'self';"
         )
-        
+
         # Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
-        
+
         # Prevent clickjacking
         response.headers["X-Frame-Options"] = "DENY"
-        
+
         # Enable XSS protection (legacy but still useful)
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        
+
         # Prevent referrer leakage
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        
+
         # Enforce HTTPS in production (HSTS)
         # Only set if using HTTPS
         if request.url.scheme == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
+
         # Permissions Policy - disable unnecessary browser features
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
-        )
-        
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+
         return response
 
 
@@ -72,7 +70,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
     """
     Global error handler to prevent information disclosure
     """
-    
+
     async def dispatch(self, request: Request, call_next: Callable):
         try:
             response = await call_next(request)
@@ -80,21 +78,21 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             # Log the full error server-side
             logger.exception(f"Unhandled error on {request.method} {request.url.path}: {exc}")
-            
+
             # Return generic error to client (don't expose stack traces)
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
                     "detail": "An internal error occurred. Please try again later.",
-                    "error_id": f"{request.url.path}_{id(exc)}"  # Include error ID for debugging
-                }
+                    "error_id": f"{request.url.path}_{id(exc)}",  # Include error ID for debugging
+                },
             )
 
 
 def setup_cors(app, cors_origins: List[str]):
     """
     Configure CORS middleware
-    
+
     Args:
         app: FastAPI application instance
         cors_origins: List of allowed origins
@@ -105,7 +103,7 @@ def setup_cors(app, cors_origins: List[str]):
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["*"],
-        expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
+        expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
     )
     logger.info(f"CORS configured with origins: {cors_origins}")
 
@@ -113,7 +111,7 @@ def setup_cors(app, cors_origins: List[str]):
 def setup_rate_limiting(app):
     """
     Configure rate limiting for the application
-    
+
     Args:
         app: FastAPI application instance
     """
@@ -125,7 +123,7 @@ def setup_rate_limiting(app):
 def add_security_headers(app):
     """
     Add security headers middleware
-    
+
     Args:
         app: FastAPI application instance
     """
@@ -136,7 +134,7 @@ def add_security_headers(app):
 def error_handler_middleware(app):
     """
     Add error handling middleware
-    
+
     Args:
         app: FastAPI application instance
     """

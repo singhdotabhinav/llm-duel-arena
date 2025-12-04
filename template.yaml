@@ -1,0 +1,208 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: LLM Duel Arena - Serverless Deployment
+
+Parameters:
+  HuggingFaceApiToken:
+    Type: String
+    Description: API Token for Hugging Face
+    NoEcho: true
+    Default: ""
+  # OpenAiApiKey:
+  #   Type: String
+  #   Description: API Key for OpenAI
+  #   NoEcho: true
+  #   Default: ""
+  # AnthropicApiKey:
+  #   Type: String
+  #   Description: API Key for Anthropic
+  #   NoEcho: true
+  #   Default: ""
+  AppSecretKey:
+    Type: String
+    Description: Secret key for session management
+    NoEcho: true
+    Default: "change_me_in_prod"
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Tracing: Active
+    Environment:
+      Variables:
+        AWS_REGION_NAME: !Ref AWS::Region
+        DYNAMODB_TABLE_USERS: LLM-Duel-Users
+        DYNAMODB_TABLE_ACTIVE_GAMES: LLM-Duel-ActiveGames
+        DEPLOYMENT_MODE: aws
+        HUGGINGFACE_API_TOKEN: !Ref HuggingFaceApiToken
+        # OPENAI_API_KEY: !Ref OpenAiApiKey
+        # ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+        APP_SECRET_KEY: !Ref AppSecretKey
+        # Disable local model in Lambda to save space/memory
+        ENABLE_LOCAL_MODEL: "false"
+        # Enable debug logging
+        LOG_LEVEL: "DEBUG"
+
+Resources:
+  # Lambda Function
+  # Define the HTTP API explicitly to configure throttling
+  ServerlessHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+
+  LLMDuelArenaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.lambda_handler.lambda_handler
+      Description: LLM Duel Arena FastAPI application
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: LLM-Duel-Users
+        - DynamoDBCrudPolicy:
+            TableName: LLM-Duel-ActiveGames
+        - DynamoDBCrudPolicy:
+            TableName: LLM-Duel-Sessions
+        - CloudWatchLambdaInsightsExecutionRolePolicy
+      # Limit concurrent executions to prevent cost spikes
+      ReservedConcurrentExecutions: 10
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            # Basic throttling (requires API Gateway v2 Stage resource for fine-grained control, 
+            # but this is a good start if using REST API. For HTTP API, we configure the Stage below)
+        RootEvent:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+    Metadata:
+      BuildMethod: python3.11
+
+  # CloudWatch Log Group
+  LLMDuelArenaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LLMDuelArenaFunction}"
+      RetentionInDays: 14
+
+  # DynamoDB Table for Users (if not exists)
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LLM-Duel-Users
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      # Enable Point-in-Time Recovery for backups
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      # Enable encryption with AWS managed key
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      # Add tags for cost tracking
+      Tags:
+        - Key: Application
+          Value: LLM-Duel-Arena
+        - Key: Environment
+          Value: Production
+
+  # DynamoDB Table for Active Games (if not exists)
+  ActiveGamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LLM-Duel-ActiveGames
+      AttributeDefinitions:
+        - AttributeName: game_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: game_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      # Enable Point-in-Time Recovery for backups
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      # Enable encryption with AWS managed key
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      Tags:
+        - Key: Application
+          Value: LLM-Duel-Arena
+        - Key: Environment
+          Value: Production
+
+  # DynamoDB Table for Sessions
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LLM-Duel-Sessions
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      # Enable TTL for automatic session expiration
+      TimeToLiveSpecification:
+        Enabled: true
+        AttributeName: ttl
+      # Enable Point-in-Time Recovery
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      # Enable encryption
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      Tags:
+        - Key: Application
+          Value: LLM-Duel-Arena
+        - Key: Environment
+          Value: Production
+
+  # CloudWatch Billing Alarm
+  BillingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: LLM-Duel-Arena-Billing-Alert
+      AlarmDescription: Alert when estimated charges exceed $10
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Statistic: Maximum
+      Period: 21600  # 6 hours
+      EvaluationPeriods: 1
+      Threshold: 10.0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Currency
+          Value: USD
+      # Note: You need to add an SNS topic ARN here for notifications
+      # AlarmActions:
+      #   - !Ref BillingAlarmTopic
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt LLMDuelArenaFunction.Arn
+  SessionsTableName:
+    Description: "Sessions DynamoDB table name"
+    Value: !Ref SessionsTable
+

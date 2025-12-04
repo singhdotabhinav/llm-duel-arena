@@ -1,16 +1,22 @@
+
 """
 AWS Cognito OIDC Authentication Router using authlib
 Implements OAuth 2.0 / OpenID Connect flow with Cognito Hosted UI
 """
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-from datetime import datetime
 from typing import Optional
+import httpx
+import jwt
+from jwt.algorithms import RSAAlgorithm
+import json
+import base64
+import struct
 import logging
 
-from ..core.config import settings
-from ..database import get_db, User, init_db
+from app.core.config import settings
+from app.core.security import create_access_token
+from app.services.dynamodb_service import dynamodb_service
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 
@@ -40,33 +46,12 @@ if settings.cognito_client_secret:
 oauth.register(**register_kwargs)
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)):
+def get_current_user(request: Request):
     """Get current logged-in user from session"""
     user_data = request.session.get('user')
     if not user_data:
         return None
     
-    email = user_data.get('email')
-    if not email:
-        return None
-    
-    # Get or create user in database
-    user = db.query(User).filter(User.email == email).first()
-    
-    if not user:
-        # Create user from Cognito data
-        user = User(
-            id=user_data.get('sub'),
-            email=email,
-            name=user_data.get('name'),
-            picture=user_data.get('picture'),
-            created_at=datetime.utcnow(),
-            last_login=datetime.utcnow()
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    else:
         user.last_login = datetime.utcnow()
         if user_data.get('name') and not user.name:
             user.name = user_data.get('name')
@@ -90,6 +75,15 @@ async def login(request: Request):
         )
     
     redirect_uri = settings.cognito_callback_url
+    
+    # Validate redirect URI against whitelist
+    if redirect_uri not in settings.allowed_redirect_uris:
+        logger.error(f"Invalid Cognito redirect URI: {redirect_uri}. Not in whitelist: {settings.allowed_redirect_uris}")
+        raise HTTPException(
+            status_code=500,
+            detail="Cognito OAuth redirect URI not properly configured. Contact administrator."
+        )
+
     
     # CRITICAL: Redirect 127.0.0.1 to localhost to ensure cookies match the callback URL
     # Cognito requires localhost for HTTP callbacks, so we must ensure the session is on localhost
@@ -232,7 +226,7 @@ async def login(request: Request):
 
 
 @router.get("/callback")
-async def authorize(request: Request, db: Session = Depends(get_db)):
+async def authorize(request: Request):
     """Handle Cognito OAuth callback and retrieve user data"""
     # Log all query parameters for debugging
     logger.info(f"[Cognito OIDC] Callback received with params: {dict(request.query_params)}")
@@ -471,9 +465,9 @@ async def logout(request: Request):
 
 
 @router.get("/user")
-async def get_user_info(request: Request, db: Session = Depends(get_db)):
+async def get_user_info(request: Request):
     """Get current user info (API endpoint for frontend)"""
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if not user:
         return {"logged_in": False}
     
@@ -529,6 +523,5 @@ async def debug_session(request: Request):
     return response
 
 
-# Initialize database on module import
-init_db()
+
 

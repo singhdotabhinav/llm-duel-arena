@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
+from typing import Optional
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
-from sqlalchemy.orm import Session
 from datetime import datetime
 import secrets
 import logging
 
-from ..core.config import settings
-from ..database import get_db, User, init_db
+from app.core.config import settings
+from app.core.security import create_access_token, verify_password, get_password_hash
+from app.services.dynamodb_service import dynamodb_service
 
 router = APIRouter()
 
@@ -40,28 +43,47 @@ oauth.register(
 sessions = {}
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)):
+def get_current_user(request: Request):
     """Get current logged-in user from session"""
     # Check for Starlette Session (Cognito)
     if 'user' in request.session:
         user_data = request.session['user']
         email = user_data.get('email')
         if email:
-            user = db.query(User).filter(User.email == email).first()
-            if user:
-                return user
+            # Return a simple object or dict that mimics the User model
+            # For now, just returning the session data is often enough, 
+            # but let's try to get from DynamoDB if needed.
+            # user = dynamodb_service.get_user(email)
+            # return user
+            
+            # Actually, the session data usually has what we need (id, email, name)
+            # Let's return a simple object
+            class UserObj:
+                def __init__(self, data):
+                    self.id = data.get('sub') or data.get('id') or data.get('email')
+                    self.email = data.get('email')
+                    self.name = data.get('name')
+                    self.picture = data.get('picture')
+            return UserObj(user_data)
 
     # Fallback to custom session_id (Google OAuth legacy)
     session_id = request.cookies.get("session_id")
     if not session_id or session_id not in sessions:
         return None
     
-    user_email = sessions[session_id].get("email")
-    if not user_email:
+    # The session store already holds the user data for legacy Google OAuth
+    # We can construct a UserObj from it directly.
+    session_data = sessions[session_id]
+    if not session_data:
         return None
     
-    user = db.query(User).filter(User.email == user_email).first()
-    return user
+    class UserObj:
+        def __init__(self, data):
+            self.id = data.get('user_id') or data.get('email') # Assuming user_id is stored
+            self.email = data.get('email')
+            self.name = data.get('name')
+            self.picture = data.get('picture')
+    return UserObj(session_data)
 
 
 @router.get("/login")
@@ -74,6 +96,15 @@ async def login(request: Request):
         )
     
     redirect_uri = settings.google_redirect_uri
+    
+    # Validate redirect URI against whitelist
+    if redirect_uri not in settings.allowed_redirect_uris:
+        logger.error(f"Invalid redirect URI: {redirect_uri}. Not in whitelist: {settings.allowed_redirect_uris}")
+        raise HTTPException(
+            status_code=500,
+            detail="OAuth redirect URI not properly configured. Contact administrator."
+        )
+    
     logger.info("[OAuth] /auth/login invoked. Session before authorize: %s", dict(request.session))
     response = await oauth.google.authorize_redirect(request, redirect_uri)
     logger.info("[OAuth] authorize_redirect returned. Session after authorize: %s", dict(request.session))
@@ -81,8 +112,9 @@ async def login(request: Request):
     return response
 
 
+
 @router.get("/callback")
-async def auth_callback(request: Request, db: Session = Depends(get_db)):
+async def auth_callback(request: Request):
     """Handle Google OAuth callback"""
     try:
         logger.info("[OAuth] /auth/callback invoked. Incoming session: %s", dict(request.session))
@@ -155,7 +187,7 @@ async def logout(request: Request):
 
 
 @router.get("/user")
-async def get_user_info(request: Request, db: Session = Depends(get_db)):
+async def get_user_info(request: Request):
     """Get current user info (API endpoint for frontend)"""
     user = get_current_user(request, db)
     if not user:
@@ -172,6 +204,5 @@ async def get_user_info(request: Request, db: Session = Depends(get_db)):
     }
 
 
-# Initialize database on module import
-init_db()
+
 

@@ -60,5 +60,51 @@ See `env.example` for configuration options. If using Ollama, cloud API keys are
 - Python 3.11+
 - Run tests: `pytest`
 
+## 🔐 Security & Production Deployment
+
+> [!WARNING]
+> **Production Deployment**: This application includes comprehensive security features for production deployment. Before deploying to AWS or hosting publicly, **you must**:
+> 
+> 1. Generate a strong random `APP_SECRET_KEY`
+> 2. Configure CORS with your production domain
+> 3. Enable HTTPS (session cookies will be secure automatically)
+> 4. Set up AWS billing alarms
+> 5. Review the complete security checklist
+
+### Security Features
+
+- ✅ **Security Headers**: CSP, X-Frame-Options, X-Content-Type-Options
+- ✅ **Rate Limiting**: API Gateway + application-level rate limiting
+- ✅ **CORS Protection**: Configurable origin whitelist
+- ✅ **Session Security**: Environment-aware secure cookies
+- ✅ **Input Validation**: Pydantic schemas with sanitization
+- ✅ **DDoS Protection**: AWS WAF integration ready
+- ✅ **Encrypted Storage**: KMS encryption for all DynamoDB tables
+- ✅ **Billing Alarms**: CloudWatch alerts for cost monitoring
+
+### 📖 Security Documentation
+
+For complete production deployment guide, see:
+- **[SECURITY_DEPLOYMENT.md](SECURITY_DEPLOYMENT.md)** - Complete deployment guide with checklist
+- **[.env.example](.env.example)** - Configuration with security guidance
+
+### Quick Security Checklist
+
+```bash
+# 1. Generate strong secret key
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# 2. Update .env with production settings
+DEPLOYMENT_MODE=aws
+USE_DYNAMODB_SESSIONS=true
+CORS_ORIGINS=https://yourdomain.com
+LOG_LEVEL=INFO
+
+# 3. Deploy with SAM
+sam build && sam deploy --guided
+
+# 4. Set up monitoring and alarms (see SECURITY_DEPLOYMENT.md)
+```
+
 ## License
 MIT

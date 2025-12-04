@@ -121,38 +121,46 @@ async def auth_callback(request: Request):
         if not user_info:
             raise HTTPException(status_code=400, detail="Failed to get user info from Google")
 
-        # Get or create user
-        user = db.query(User).filter(User.email == user_info["email"]).first()
+        # Get or create user in DynamoDB
+        email = user_info["email"]
+        user = dynamodb_service.get_user(email)
 
         if not user:
-            user = User(
-                id=user_info["sub"],  # Google user ID
-                email=user_info["email"],
-                name=user_info.get("name"),
-                picture=user_info.get("picture"),
-                created_at=datetime.utcnow(),
-                last_login=datetime.utcnow(),
-            )
-            db.add(user)
+            # Create new user
+            user_data = {
+                "email": email,
+                "id": user_info["sub"],  # Google user ID
+                "name": user_info.get("name"),
+                "picture": user_info.get("picture"),
+                "created_at": datetime.utcnow().isoformat(),
+                "last_login": datetime.utcnow().isoformat(),
+            }
+            dynamodb_service.create_user(user_data)
+            user = user_data
         else:
-            user.last_login = datetime.utcnow()
-            if user_info.get("name"):
-                user.name = user_info["name"]
-            if user_info.get("picture"):
-                user.picture = user_info["picture"]
-
-        db.commit()
+            # Update last login
+            dynamodb_service.update_user_login(email)
+            # Update name/picture if provided
+            if user_info.get("name") and not user.get("name"):
+                dynamodb_service.update_user(email, {"name": user_info["name"]})
+            if user_info.get("picture") and not user.get("picture"):
+                dynamodb_service.update_user(email, {"picture": user_info["picture"]})
+            user = dynamodb_service.get_user(email) or user
 
         # Create session
         session_id = secrets.token_urlsafe(32)
-        sessions[session_id] = {"email": user.email, "name": user.name, "picture": user.picture, "user_id": user.id}
+        user_email = user.get("email") if isinstance(user, dict) else user.email
+        user_name = user.get("name") if isinstance(user, dict) else user.name
+        user_picture = user.get("picture") if isinstance(user, dict) else user.picture
+        user_id = user.get("id") if isinstance(user, dict) else (user.get("sub") if isinstance(user, dict) else user.id)
+        sessions[session_id] = {"email": user_email, "name": user_name, "picture": user_picture, "user_id": user_id}
 
         # Redirect to home with session cookie
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             key="session_id", value=session_id, httponly=True, max_age=30 * 24 * 60 * 60, samesite="lax"  # 30 days
         )
-        logger.info("[OAuth] Login successful for %s. session_id cookie set.", user.email)
+        logger.info("[OAuth] Login successful for %s. session_id cookie set.", user_email)
         return response
 
     except Exception as e:
@@ -175,7 +183,7 @@ async def logout(request: Request):
 @router.get("/user")
 async def get_user_info(request: Request):
     """Get current user info (API endpoint for frontend)"""
-    user = get_current_user(request, db)
+    user = get_current_user(request)
     if not user:
         return {"logged_in": False}
 

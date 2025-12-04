@@ -50,14 +50,10 @@ def get_current_user(request: Request):
     if not user_data:
         return None
 
-        user.last_login = datetime.utcnow()
-        if user_data.get("name") and not user.name:
-            user.name = user_data.get("name")
-        if user_data.get("picture") and not user.picture:
-            user.picture = user_data.get("picture")
-        db.commit()
-
-    return user
+    # Return user data from session
+    # Note: This is session-based, not database-based
+    # For database operations, use dynamodb_service directly
+    return user_data
 
 
 @router.get("/login")

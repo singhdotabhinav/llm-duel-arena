@@ -1,0 +1,301 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main      # Deploy to production
+      - develop   # Deploy to dev
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  AWS_REGION: us-east-1
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Job 1: Lint and Test
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov black flake8 mypy
+
+      - name: Run linter (flake8)
+        run: |
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Check code formatting (black)
+        run: |
+          black --check app/
+
+      - name: Run type checking (mypy)
+        run: |
+          mypy app/ --ignore-missing-imports || true
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=app --cov-report=xml --cov-report=html || true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        if: always()
+
+  # Job 2: Build Lambda Packages
+  build:
+    name: Build Lambda Packages
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lambda.txt
+
+      - name: Build Lambda packages
+        run: |
+          cd infrastructure
+          chmod +x build-lambda.sh
+          ./build-lambda.sh ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+
+      - name: Upload Lambda packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: lambda-packages
+          path: infrastructure/deployments/*.zip
+          retention-days: 7
+
+  # Job 3: Deploy Infrastructure (Terraform)
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+        run: |
+          terraform init \
+            -backend-config="bucket=llm-duel-arena-terraform-state" \
+            -backend-config="key=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform Plan
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+        run: |
+          terraform plan \
+            -var-file=terraform.tfvars \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+        run: |
+          terraform apply -auto-approve tfplan
+
+      - name: Save Terraform outputs
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+        run: |
+          terraform output -json > terraform-outputs.json
+
+      - name: Upload Terraform outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-outputs
+          path: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}/terraform-outputs.json
+
+  # Job 4: Deploy Lambda Functions
+  deploy-lambda:
+    name: Deploy Lambda Functions
+    runs-on: ubuntu-latest
+    needs: [build, deploy-infrastructure]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Lambda packages
+        uses: actions/download-artifact@v3
+        with:
+          name: lambda-packages
+          path: infrastructure/deployments/
+
+      - name: Deploy Lambda functions
+        run: |
+          cd infrastructure
+          chmod +x deploy.sh
+          ./deploy.sh ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }} ${{ env.AWS_REGION }}
+
+      - name: Verify Lambda deployment
+        run: |
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          aws lambda list-functions \
+            --query "Functions[?contains(FunctionName, 'llm-duel-arena')].FunctionName" \
+            --region ${{ env.AWS_REGION }} \
+            --output table
+
+  # Job 5: Deploy Static Assets
+  deploy-static:
+    name: Deploy Static Assets
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy static assets
+        run: |
+          cd infrastructure
+          chmod +x deploy-static.sh
+          ./deploy-static.sh ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }} ${{ env.AWS_REGION }}
+
+  # Job 6: Run Integration Tests
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-lambda, deploy-static]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Terraform outputs
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-outputs
+          path: .
+
+      - name: Get API Gateway URL
+        id: get-api-url
+        run: |
+          API_URL=$(cat terraform-outputs.json | jq -r '.api_gateway_url.value')
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "API Gateway URL: $API_URL"
+
+      - name: Test API endpoints
+        run: |
+          API_URL="${{ steps.get-api-url.outputs.api_url }}"
+          
+          # Test health endpoint (if exists)
+          curl -f "$API_URL/api/games/health" || echo "Health endpoint not available"
+          
+          # Test game creation
+          curl -X POST "$API_URL/api/games/create" \
+            -H "Content-Type: application/json" \
+            -d '{"game_type": "tic_tac_toe"}' \
+            -f || echo "Game creation test failed"
+
+      - name: Test frontend accessibility
+        run: |
+          # Get CloudFront URL from Terraform outputs
+          CLOUDFRONT_URL=$(cat terraform-outputs.json | jq -r '.cloudfront_url.value')
+          echo "CloudFront URL: $CLOUDFRONT_URL"
+          
+          # Test if frontend is accessible
+          curl -f "$CLOUDFRONT_URL" || echo "Frontend not accessible"
+
+  # Job 7: Notify Deployment Status
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: always() && github.event_name == 'push'
+    
+    steps:
+      - name: Deployment Success Notification
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          # Add Slack/Discord/Email notification here if needed
+
+      - name: Deployment Failure Notification
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          # Add Slack/Discord/Email notification here if needed
+

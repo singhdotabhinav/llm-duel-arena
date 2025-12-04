@@ -15,12 +15,12 @@ class Settings(BaseModel):
     base_dir: Path = Path(__file__).resolve().parents[2]
     templates_dir: Path = base_dir / "app" / "templates"
     static_dir: Path = base_dir / "app" / "static"
-    
+
     # Google OAuth (legacy, can be removed after Cognito migration)
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/callback")
-    
+
     # AWS Cognito
     cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID", "")
     cognito_client_id: str = os.getenv("COGNITO_CLIENT_ID", "")
@@ -30,28 +30,28 @@ class Settings(BaseModel):
     cognito_callback_url: str = os.getenv("COGNITO_CALLBACK_URL", "http://localhost:8000/auth/callback")
     cognito_logout_url: str = os.getenv("COGNITO_LOGOUT_URL", "http://localhost:8000/")
     cognito_scopes: str = os.getenv("COGNITO_SCOPES", "openid email profile")  # Customizable scopes
-    
+
     # Use Cognito instead of Google OAuth
     use_cognito: bool = os.getenv("USE_COGNITO", "false").lower() == "true"
-    
+
     # AWS Profile (optional - for boto3 if using programmatic API)
     aws_profile: str = os.getenv("AWS_PROFILE", "")  # Leave empty to use default profile
     aws_region: str = os.getenv("AWS_REGION", "us-east-1")  # Override region if needed
     aws_access_key_id: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     aws_secret_access_key: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-    
+
     # DynamoDB
     dynamodb_table_name: str = os.getenv("DYNAMODB_TABLE_NAME", "llm-duel-arena-users")
 
     # Hugging Face
     huggingface_api_token: str = os.getenv("HUGGINGFACE_API_TOKEN", "")
-    
+
     # Cognito OIDC Authority URL (auto-generated from user pool ID and region)
     @property
     def cognito_authority(self) -> str:
         """Generate Cognito OIDC authority URL"""
         return f"https://cognito-idp.{self.cognito_region}.amazonaws.com/{self.cognito_user_pool_id}"
-    
+
     @property
     def cognito_server_metadata_url(self) -> str:
         """Generate Cognito OIDC server metadata URL"""
@@ -84,7 +84,7 @@ class Settings(BaseModel):
     # Security Settings
     # CORS - Comma-separated list of allowed origins
     cors_origins_str: str = os.getenv("CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000")
-    
+
     @property
     def cors_origins(self) -> list:
         """Parse CORS origins from comma-separated string"""
@@ -92,24 +92,23 @@ class Settings(BaseModel):
             # In production, if not explicitly set, default to wildcard (will need to be configured)
             return ["*"]
         return [origin.strip() for origin in self.cors_origins_str.split(",") if origin.strip()]
-    
+
     # Rate limiting
     enable_rate_limiting: bool = os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
-    
+
     # Session storage
     session_table_name: str = os.getenv("SESSION_TABLE_NAME", "LLM-Duel-Sessions")
     use_dynamodb_sessions: bool = os.getenv("USE_DYNAMODB_SESSIONS", "false").lower() == "true"
-    
+
     # Secrets Manager (optional for enhanced security)
     use_secrets_manager: bool = os.getenv("USE_SECRETS_MANAGER", "false").lower() == "true"
     secrets_manager_prefix: str = os.getenv("SECRETS_MANAGER_PREFIX", "llm-duel-arena")
-    
+
     # OAuth allowed redirect URIs (for validation)
     allowed_redirect_uris_str: str = os.getenv(
-        "ALLOWED_REDIRECT_URIS",
-        "http://localhost:8000/auth/callback,http://127.0.0.1:8000/auth/callback"
+        "ALLOWED_REDIRECT_URIS", "http://localhost:8000/auth/callback,http://127.0.0.1:8000/auth/callback"
     )
-    
+
     @property
     def allowed_redirect_uris(self) -> list:
         """Parse allowed redirect URIs from comma-separated string"""
@@ -119,12 +118,11 @@ class Settings(BaseModel):
     deployment_mode: str = os.getenv("DEPLOYMENT_MODE", "local")  # local or aws
     api_base_url: str = os.getenv("API_BASE_URL", "")  # Override API URL (for AWS)
 
-    
     @property
     def is_local(self) -> bool:
         """Check if running in local development mode"""
         return self.deployment_mode == "local" or not os.getenv("AWS_LAMBDA_FUNCTION_NAME")
-    
+
     @property
     def api_url(self) -> str:
         """Get the API base URL based on deployment mode"""

@@ -12,25 +12,3 @@ class LocalHFAdapter(RandomFallbackAdapter):
         # Placeholder for future HF pipeline/vLLM client
 
     # Inherit random move for now
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

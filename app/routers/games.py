@@ -29,14 +29,14 @@ def _to_schema(state) -> GameStateSchema:
                 from_square=m.from_square,
                 to_square=m.to_square,
                 captured_piece=m.captured_piece,
-                tokens_used=getattr(m, 'tokens_used', 0),
+                tokens_used=getattr(m, "tokens_used", 0),
             )
             for m in state.moves
         ],
         white_model=state.white_model,
         black_model=state.black_model,
-        white_tokens=getattr(state, 'white_tokens', 0),
-        black_tokens=getattr(state, 'black_tokens', 0),
+        white_tokens=getattr(state, "white_tokens", 0),
+        black_tokens=getattr(state, "black_tokens", 0),
     )
 
 
@@ -54,16 +54,18 @@ async def list_games():
     for game_id in all_game_ids:
         state = game_manager.get_state(game_id)
         if state:
-            games_list.append({
-                "game_id": game_id,
-                "game_type": state.game_type,
-                "white_model": state.white_model or "Unknown",
-                "black_model": state.black_model or "Unknown",
-                "moves_count": len(state.moves),
-                "over": state.over,
-                "result": state.result,
-                "turn": state.turn,  # type: ignore
-            })
+            games_list.append(
+                {
+                    "game_id": game_id,
+                    "game_type": state.game_type,
+                    "white_model": state.white_model or "Unknown",
+                    "black_model": state.black_model or "Unknown",
+                    "moves_count": len(state.moves),
+                    "over": state.over,
+                    "result": state.result,
+                    "turn": state.turn,  # type: ignore
+                }
+            )
     return {"games": games_list}
 
 
@@ -73,11 +75,12 @@ async def get_my_games(request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     # Fetch from DynamoDB
     from ..services.dynamodb_service import dynamodb_service
+
     user_data = dynamodb_service.get_user(user.email)
-    
+
     games_list = []
     if user_data and "game_list" in user_data:
         # game_list is a map of game_id -> game_data
@@ -85,26 +88,28 @@ async def get_my_games(request: Request):
             # Determine winner/result structure to match frontend expectation
             # Frontend expects: "result": {"result": "...", "winner": "..."}
             # DynamoDB has: "result": "Model Name" (string)
-            
+
             # We need to adapt the DynamoDB format to what the frontend expects
             # based on the previous SQL implementation:
             # "result": {"result": game.result, "winner": game.winner}
-            
+
             # In DynamoDB we stored "result" as the winner model name.
             # Let's reconstruct a compatible structure.
             result_str = game_info.get("result", "Unknown")
-            
-            games_list.append({
-                "game_id": game_id,
-                "game_type": game_info.get("game", "unknown"),
-                "white_model": game_info.get("p1", "Unknown"),
-                "black_model": game_info.get("p2", "Unknown"),
-                "moves_count": 0, # Not stored in simple DynamoDB schema
-                "over": True, # All games in history are over
-                "result": {"result": result_str, "winner": result_str},
-                "created_at": None, # Not stored in simple DynamoDB schema
-            })
-    
+
+            games_list.append(
+                {
+                    "game_id": game_id,
+                    "game_type": game_info.get("game", "unknown"),
+                    "white_model": game_info.get("p1", "Unknown"),
+                    "black_model": game_info.get("p2", "Unknown"),
+                    "moves_count": 0,  # Not stored in simple DynamoDB schema
+                    "over": True,  # All games in history are over
+                    "result": {"result": result_str, "winner": result_str},
+                    "created_at": None,  # Not stored in simple DynamoDB schema
+                }
+            )
+
     return {"games": games_list}
 
 
@@ -113,10 +118,10 @@ async def random_duel(req: CreateGameRequest, request: Request):
     """Start a random duel with default models"""
     import random
     import logging
-    
+
     logger = logging.getLogger(__name__)
     logger.info(f"Random duel requested with game_type: {req.game_type}")
-    
+
     models = [
         "ollama:llama3.1:latest",
         "ollama:mistral-nemo:latest",
@@ -127,21 +132,21 @@ async def random_duel(req: CreateGameRequest, request: Request):
     ]
     white = random.choice(models)
     black = random.choice([m for m in models if m != white])
-    
+
     game_type = req.game_type if req.game_type else "chess"
     initial_state = req.initial_state or req.fen
-    
+
     logger.info(f"Creating {game_type} game with {white} vs {black}")
     state = game_manager.create_game(game_type, white, black, initial_state)
-    
+
     # Save to database if user is logged in
     user = get_current_user(request)
     if user:
         save_game_to_db(state, user.id)
-    
+
     # Don't auto-start - let user click Start button
     # match_runner.start(state.game_id, white, black)
-    
+
     return {"game_id": state.game_id, "game_type": state.game_type, "white_model": white, "black_model": black}
 
 
@@ -150,12 +155,12 @@ async def create_game(req: CreateGameRequest, request: Request):
     game_type = req.game_type or "chess"
     initial_state = req.initial_state or req.fen
     state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state)
-    
+
     # Save to database if user is logged in
     user = get_current_user(request)
     if user:
         save_game_to_db(state, user.id)
-    
+
     return _to_schema(state)
 
 
@@ -174,12 +179,12 @@ async def post_move(game_id: str, req: MoveRequest, request: Request):
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
     updated = game_manager.push_move(game_id, req.move, model_name="manual")
-    
+
     # Update database if user is logged in
     user = get_current_user(request)
     if user:
         save_game_to_db(updated, user.id)
-    
+
     return _to_schema(updated)
 
 

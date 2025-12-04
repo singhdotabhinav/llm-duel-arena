@@ -18,24 +18,21 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Initialize OAuth
-config = Config(environ={
-    "GOOGLE_CLIENT_ID": settings.google_client_id,
-    "GOOGLE_CLIENT_SECRET": settings.google_client_secret,
-})
+config = Config(
+    environ={
+        "GOOGLE_CLIENT_ID": settings.google_client_id,
+        "GOOGLE_CLIENT_SECRET": settings.google_client_secret,
+    }
+)
 
 oauth = OAuth(config)
 
 oauth.register(
-    name='google',
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    },
+    name="google",
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid email profile"},
     # Add these to help with session/state handling
-    authorize_params={
-        'access_type': 'offline',
-        'prompt': 'consent'
-    }
+    authorize_params={"access_type": "offline", "prompt": "consent"},
 )
 
 
@@ -46,43 +43,45 @@ sessions = {}
 def get_current_user(request: Request):
     """Get current logged-in user from session"""
     # Check for Starlette Session (Cognito)
-    if 'user' in request.session:
-        user_data = request.session['user']
-        email = user_data.get('email')
+    if "user" in request.session:
+        user_data = request.session["user"]
+        email = user_data.get("email")
         if email:
             # Return a simple object or dict that mimics the User model
-            # For now, just returning the session data is often enough, 
+            # For now, just returning the session data is often enough,
             # but let's try to get from DynamoDB if needed.
             # user = dynamodb_service.get_user(email)
             # return user
-            
+
             # Actually, the session data usually has what we need (id, email, name)
             # Let's return a simple object
             class UserObj:
                 def __init__(self, data):
-                    self.id = data.get('sub') or data.get('id') or data.get('email')
-                    self.email = data.get('email')
-                    self.name = data.get('name')
-                    self.picture = data.get('picture')
+                    self.id = data.get("sub") or data.get("id") or data.get("email")
+                    self.email = data.get("email")
+                    self.name = data.get("name")
+                    self.picture = data.get("picture")
+
             return UserObj(user_data)
 
     # Fallback to custom session_id (Google OAuth legacy)
     session_id = request.cookies.get("session_id")
     if not session_id or session_id not in sessions:
         return None
-    
+
     # The session store already holds the user data for legacy Google OAuth
     # We can construct a UserObj from it directly.
     session_data = sessions[session_id]
     if not session_data:
         return None
-    
+
     class UserObj:
         def __init__(self, data):
-            self.id = data.get('user_id') or data.get('email') # Assuming user_id is stored
-            self.email = data.get('email')
-            self.name = data.get('name')
-            self.picture = data.get('picture')
+            self.id = data.get("user_id") or data.get("email")  # Assuming user_id is stored
+            self.email = data.get("email")
+            self.name = data.get("name")
+            self.picture = data.get("picture")
+
     return UserObj(session_data)
 
 
@@ -92,25 +91,21 @@ async def login(request: Request):
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(
             status_code=500,
-            detail="Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file."
+            detail="Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.",
         )
-    
+
     redirect_uri = settings.google_redirect_uri
-    
+
     # Validate redirect URI against whitelist
     if redirect_uri not in settings.allowed_redirect_uris:
         logger.error(f"Invalid redirect URI: {redirect_uri}. Not in whitelist: {settings.allowed_redirect_uris}")
-        raise HTTPException(
-            status_code=500,
-            detail="OAuth redirect URI not properly configured. Contact administrator."
-        )
-    
+        raise HTTPException(status_code=500, detail="OAuth redirect URI not properly configured. Contact administrator.")
+
     logger.info("[OAuth] /auth/login invoked. Session before authorize: %s", dict(request.session))
     response = await oauth.google.authorize_redirect(request, redirect_uri)
     logger.info("[OAuth] authorize_redirect returned. Session after authorize: %s", dict(request.session))
-    logger.info("[OAuth] Response headers include set-cookie: %s", response.headers.get('set-cookie'))
+    logger.info("[OAuth] Response headers include set-cookie: %s", response.headers.get("set-cookie"))
     return response
-
 
 
 @router.get("/callback")
@@ -121,54 +116,45 @@ async def auth_callback(request: Request):
         # Authorize access token with the request that includes session data
         token = await oauth.google.authorize_access_token(request)
         logger.info("[OAuth] Access token obtained successfully")
-        user_info = token.get('userinfo')
-        
+        user_info = token.get("userinfo")
+
         if not user_info:
             raise HTTPException(status_code=400, detail="Failed to get user info from Google")
-        
+
         # Get or create user
-        user = db.query(User).filter(User.email == user_info['email']).first()
-        
+        user = db.query(User).filter(User.email == user_info["email"]).first()
+
         if not user:
             user = User(
-                id=user_info['sub'],  # Google user ID
-                email=user_info['email'],
-                name=user_info.get('name'),
-                picture=user_info.get('picture'),
+                id=user_info["sub"],  # Google user ID
+                email=user_info["email"],
+                name=user_info.get("name"),
+                picture=user_info.get("picture"),
                 created_at=datetime.utcnow(),
-                last_login=datetime.utcnow()
+                last_login=datetime.utcnow(),
             )
             db.add(user)
         else:
             user.last_login = datetime.utcnow()
-            if user_info.get('name'):
-                user.name = user_info['name']
-            if user_info.get('picture'):
-                user.picture = user_info['picture']
-        
+            if user_info.get("name"):
+                user.name = user_info["name"]
+            if user_info.get("picture"):
+                user.picture = user_info["picture"]
+
         db.commit()
-        
+
         # Create session
         session_id = secrets.token_urlsafe(32)
-        sessions[session_id] = {
-            "email": user.email,
-            "name": user.name,
-            "picture": user.picture,
-            "user_id": user.id
-        }
-        
+        sessions[session_id] = {"email": user.email, "name": user.name, "picture": user.picture, "user_id": user.id}
+
         # Redirect to home with session cookie
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
-            key="session_id",
-            value=session_id,
-            httponly=True,
-            max_age=30 * 24 * 60 * 60,  # 30 days
-            samesite="lax"
+            key="session_id", value=session_id, httponly=True, max_age=30 * 24 * 60 * 60, samesite="lax"  # 30 days
         )
         logger.info("[OAuth] Login successful for %s. session_id cookie set.", user.email)
         return response
-        
+
     except Exception as e:
         logger.exception("[OAuth] Authentication failed: %s", e)
         raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
@@ -180,7 +166,7 @@ async def logout(request: Request):
     session_id = request.cookies.get("session_id")
     if session_id and session_id in sessions:
         del sessions[session_id]
-    
+
     response = RedirectResponse(url="/", status_code=302)
     response.delete_cookie("session_id")
     return response
@@ -192,17 +178,5 @@ async def get_user_info(request: Request):
     user = get_current_user(request, db)
     if not user:
         return {"logged_in": False}
-    
-    return {
-        "logged_in": True,
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "picture": user.picture
-        }
-    }
 
-
-
-
+    return {"logged_in": True, "user": {"id": user.id, "email": user.email, "name": user.name, "picture": user.picture}}

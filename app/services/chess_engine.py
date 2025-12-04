@@ -15,13 +15,13 @@ class ChessEngine(BaseGameEngine):
 
     def get_state(self) -> str:
         return self.board.fen()
-    
+
     def get_fen(self) -> str:  # Keep for backward compatibility
         return self.get_state()
 
     def legal_moves(self) -> List[str]:
         return [m.uci() for m in self.board.legal_moves]
-    
+
     def legal_moves_uci(self) -> List[str]:  # Keep for backward compatibility
         return self.legal_moves()
 
@@ -47,10 +47,10 @@ class ChessEngine(BaseGameEngine):
             return False
         self.board.push(move_obj)
         return True
-    
+
     def push_uci(self, uci: str) -> bool:  # Keep for backward compatibility
         return self.push_move(uci)
-    
+
     def get_turn(self) -> str:
         """Get current player"""
         return "white" if self.board.turn else "black"
@@ -70,4 +70,3 @@ class ChessEngine(BaseGameEngine):
             return self.board.san(move)
         except Exception:
             return None
-

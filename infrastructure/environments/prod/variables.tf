@@ -16,29 +16,8 @@ variable "project_name" {
   default     = "llm-duel-arena"
 }
 
-variable "openai_api_key" {
-  description = "OpenAI API key"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "google_client_id" {
-  description = "Google OAuth client ID"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "google_client_secret" {
-  description = "Google OAuth client secret"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "domain_name" {
-  description = "Custom domain name (optional)"
-  type        = string
-  default     = ""
-}
+# Removed unused variables:
+# - openai_api_key (not used - using Ollama/HuggingFace)
+# - google_client_id (not used - using Cognito)
+# - google_client_secret (not used - using Cognito)
+# - domain_name (not purchased yet)

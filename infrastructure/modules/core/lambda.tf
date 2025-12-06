@@ -30,9 +30,9 @@ resource "aws_lambda_function" "auth" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE              = aws_dynamodb_table.users.name
-      ENVIRONMENT                 = var.environment
-      GOOGLE_CLIENT_ID_SECRET_ARN = aws_secretsmanager_secret.google_oauth.arn
+      DYNAMODB_TABLE  = aws_dynamodb_table.users.name
+      ENVIRONMENT     = var.environment
+      # Using Cognito for authentication - no Google OAuth needed
     }
   }
 
@@ -52,8 +52,8 @@ resource "aws_lambda_function" "llm" {
 
   environment {
     variables = {
-      OPENAI_API_KEY_SECRET_ARN = aws_secretsmanager_secret.openai_api_key.arn
-      ENVIRONMENT               = var.environment
+      ENVIRONMENT = var.environment
+      # Using Ollama/HuggingFace for LLM - no OpenAI API key needed
     }
   }
 

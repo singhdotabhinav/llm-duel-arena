@@ -59,8 +59,7 @@ resource "aws_iam_role_policy" "lambda_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          aws_secretsmanager_secret.openai_api_key.arn,
-          aws_secretsmanager_secret.google_oauth.arn
+          # No secrets needed - using Cognito and Ollama/HuggingFace
         ]
       }
     ]

@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .core.config import settings
 from .core.logging import configure_logging
-from .routers import games, auth
+from .routers import games
 from .middleware.security import setup_cors, setup_rate_limiting, add_security_headers, error_handler_middleware
 
 configure_logging()
@@ -48,9 +48,9 @@ templates = Jinja2Templates(directory=str(settings.templates_dir))
 
 app.include_router(games.router, prefix="/api/games", tags=["games"])
 
-# Use Cognito auth if enabled, otherwise use Google OAuth
+# Use Cognito for authentication
 if settings.use_cognito:
-    # Use OIDC-based Cognito auth (using authlib, similar to the Flask example code)
+    # Use OIDC-based Cognito auth (using authlib)
     from .routers import cognito_oidc_auth
 
     app.include_router(cognito_oidc_auth.router, prefix="/auth", tags=["auth"])
@@ -60,7 +60,9 @@ if settings.use_cognito:
 
     app.include_router(cognito_auth.router, prefix="/api/auth", tags=["auth-api"])
 else:
-    app.include_router(auth.router, prefix="/auth", tags=["auth"])
+    raise RuntimeError(
+        "Cognito authentication is required. Set USE_COGNITO=true in your environment variables."
+    )
 
 
 @app.get("/", response_class=HTMLResponse)

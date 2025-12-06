@@ -16,10 +16,7 @@ class Settings(BaseModel):
     templates_dir: Path = base_dir / "app" / "templates"
     static_dir: Path = base_dir / "app" / "static"
 
-    # Google OAuth (legacy, can be removed after Cognito migration)
-    google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
-    google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
-    google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/callback")
+    # Google OAuth removed - using Cognito for authentication
 
     # AWS Cognito
     cognito_user_pool_id: str = os.getenv("COGNITO_USER_POOL_ID", "")

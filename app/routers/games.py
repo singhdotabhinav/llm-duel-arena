@@ -4,7 +4,7 @@ from ..services.game_manager import game_manager
 from ..services.match_runner import match_runner
 from ..services.game_db_service import save_game_to_db, get_user_games
 from ..schemas import CreateGameRequest, MoveRequest, GameState as GameStateSchema, MoveRecord as MoveRecordSchema
-from ..routers.auth import get_current_user
+from ..core.auth import get_current_user_obj as get_current_user
 
 router = APIRouter()
 

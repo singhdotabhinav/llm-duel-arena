@@ -16,6 +16,7 @@ import logging
 
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.core.auth import get_current_user_obj as get_current_user
 from app.services.dynamodb_service import dynamodb_service
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
@@ -44,16 +45,7 @@ if settings.cognito_client_secret:
 oauth.register(**register_kwargs)
 
 
-def get_current_user(request: Request):
-    """Get current logged-in user from session"""
-    user_data = request.session.get("user")
-    if not user_data:
-        return None
-
-    # Return user data from session
-    # Note: This is session-based, not database-based
-    # For database operations, use dynamodb_service directly
-    return user_data
+from ..core.auth import get_current_user_obj as get_current_user
 
 
 @router.get("/login")

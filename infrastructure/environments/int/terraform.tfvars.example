@@ -1,0 +1,9 @@
+aws_region  = "us-east-1"
+environment = "int"
+project_name = "llm-duel-arena"
+
+openai_api_key       = ""
+google_client_id     = ""
+google_client_secret = ""
+
+domain_name = ""

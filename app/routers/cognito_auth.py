@@ -274,7 +274,6 @@ async def logout(request: Request):
 @router.get("/user")
 async def get_user_info(request: Request):
     """Get current user info"""
-    from ..core.auth import get_current_user_obj as get_current_user
     user = get_current_user(request)
     if not user:
         return {"logged_in": False}

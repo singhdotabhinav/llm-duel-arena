@@ -28,3 +28,4 @@ def test_allowed_redirect_uris():
     assert isinstance(settings.allowed_redirect_uris, list)
     assert len(settings.allowed_redirect_uris) > 0
 
+

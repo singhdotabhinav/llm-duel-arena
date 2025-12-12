@@ -42,3 +42,4 @@ After cleanup:
 - **scripts/archive/:** Unused helper scripts
 - **Code:** Only Cognito auth, no Google OAuth
 
+

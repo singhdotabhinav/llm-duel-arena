@@ -33,3 +33,4 @@ def test_static_files(client):
     # Should either return 200 or 404 if file doesn't exist
     assert response.status_code in [200, 404]
 
+

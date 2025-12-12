@@ -46,3 +46,4 @@ def get_current_user_obj(request: Request):
 
     return UserObj(user_data)
 
+

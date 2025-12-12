@@ -60,9 +60,7 @@ if settings.use_cognito:
 
     app.include_router(cognito_auth.router, prefix="/api/auth", tags=["auth-api"])
 else:
-    raise RuntimeError(
-        "Cognito authentication is required. Set USE_COGNITO=true in your environment variables."
-    )
+    raise RuntimeError("Cognito authentication is required. Set USE_COGNITO=true in your environment variables.")
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -11,7 +11,7 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     """
     Get current logged-in user from session.
     Works with both Cognito OIDC and legacy auth systems.
-    
+
     Returns:
         User data dict with keys: id, email, name, picture
         None if user is not logged in
@@ -29,7 +29,7 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
 def get_current_user_obj(request: Request):
     """
     Get current user as an object (for compatibility with old code).
-    
+
     Returns:
         UserObj instance or None
     """
@@ -45,5 +45,3 @@ def get_current_user_obj(request: Request):
             self.picture = data.get("picture", "")
 
     return UserObj(user_data)
-
-

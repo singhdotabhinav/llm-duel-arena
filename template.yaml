@@ -28,7 +28,7 @@ Globals:
   Function:
     Timeout: 30
     MemorySize: 512
-    Runtime: python3.11
+    Runtime: python3.12
     Tracing: Active
     Environment:
       Variables:
@@ -86,7 +86,7 @@ Resources:
             Path: /
             Method: ANY
     Metadata:
-      BuildMethod: python3.11
+      BuildMethod: python3.12
 
   # CloudWatch Log Group
   LLMDuelArenaLogGroup:

@@ -3,7 +3,7 @@ resource "aws_lambda_function" "game" {
   function_name = "${var.project_name}-game-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "game_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   timeout       = 30
   memory_size   = 512
 
@@ -24,7 +24,7 @@ resource "aws_lambda_function" "auth" {
   function_name = "${var.project_name}-auth-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "auth_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   timeout       = 15
   memory_size   = 256
 
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "llm" {
   function_name = "${var.project_name}-llm-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "llm_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   timeout       = 60
   memory_size   = 1024
 

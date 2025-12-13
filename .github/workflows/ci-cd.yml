@@ -1,18 +1,16 @@
 name: CI/CD Pipeline
 
 # Simple 3-job pipeline: test → build → deploy
-# - Pull requests: Run test and build (no deployment)
 # - Pushes to main/develop: Run all 3 jobs sequentially
+# - No pull request triggers (prevents duplicate runs when pushing to PR branches)
 
 on:
   push:
     branches:
       - main      # Deploy to production
       - develop   # Deploy to integration
-  pull_request:
-    branches:
-      - main
-      - develop
+  # Note: Pull request triggers removed to prevent duplicate runs
+  # When you push to a branch with an open PR, only the push event triggers the workflow
 
 env:
   AWS_REGION: us-east-1
@@ -111,12 +109,8 @@ jobs:
         run: |
           cd infrastructure
           chmod +x build-lambda.sh
-          # For PRs, default to 'int'; for pushes, use branch-based environment
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            ENV="int"
-          else
-            ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
-          fi
+          # Use branch-based environment (prod for main, int for develop)
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
           ./build-lambda.sh ${ENV}
 
       - name: Upload Lambda packages

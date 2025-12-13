@@ -54,16 +54,16 @@ async def list_games():
     # In production, this would scan DynamoDB table
     try:
         from ..services.active_game_db import active_game_service
-        
+
         # If database is not available (e.g., in tests), return empty list
         if not active_game_service.table:
             return {"games": []}
-        
+
         # Scan DynamoDB table to get all games
         # Note: This is a simple scan - in production you might want pagination
         response = active_game_service.table.scan()
         items = response.get("Items", [])
-        
+
         for item in items:
             games_list.append(
                 {
@@ -80,10 +80,11 @@ async def list_games():
     except Exception as e:
         # Log error but return empty list to avoid breaking the endpoint
         import logging
+
         logger = logging.getLogger(__name__)
         logger.warning(f"Error listing games: {e}")
         return {"games": []}
-    
+
     return {"games": games_list}
 
 

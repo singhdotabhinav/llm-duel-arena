@@ -25,7 +25,7 @@ class RandomFallbackAdapter(ModelAdapter):
             legal = engine.legal_moves_uci()
         else:
             legal = engine.legal_moves()
-            
+
         if not legal:
             return None, "no legal moves"
         return random.choice(legal), None
@@ -65,6 +65,6 @@ def get_adapter(uri: str) -> ModelAdapter:
         return OllamaAdapter(name)
     if provider == "hf":
         from .huggingface_adapter import HuggingFaceAdapter
-        
+
         return HuggingFaceAdapter(name)
     return RandomFallbackAdapter(name)

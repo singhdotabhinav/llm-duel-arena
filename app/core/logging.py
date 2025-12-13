@@ -14,25 +14,3 @@ def configure_logging() -> None:
     root.setLevel(logging.INFO)
     if not any(isinstance(h, logging.StreamHandler) for h in root.handlers):
         root.addHandler(handler)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -31,7 +31,8 @@ cd ../..
 # Auth service
 mkdir -p $PACKAGE_DIR/auth
 cp -r ../app/routers $PACKAGE_DIR/auth/
-cp -r ../app/services/dynamodb_service.py $PACKAGE_DIR/auth/services/
+mkdir -p $PACKAGE_DIR/auth/services
+cp ../app/services/dynamodb_service.py $PACKAGE_DIR/auth/services/
 cp -r ../app/core $PACKAGE_DIR/auth/ 2>/dev/null || true
 cp ../app/lambda_handlers/auth_handler.py $PACKAGE_DIR/auth/
 cd $PACKAGE_DIR/auth
@@ -41,7 +42,8 @@ cd ../..
 # LLM service
 mkdir -p $PACKAGE_DIR/llm
 cp -r ../app/models $PACKAGE_DIR/llm/
-cp -r ../app/services/dynamodb_service.py $PACKAGE_DIR/llm/services/ 2>/dev/null || true
+mkdir -p $PACKAGE_DIR/llm/services
+cp ../app/services/dynamodb_service.py $PACKAGE_DIR/llm/services/ 2>/dev/null || true
 cp ../app/lambda_handlers/llm_handler.py $PACKAGE_DIR/llm/
 cd $PACKAGE_DIR/llm
 zip -r ../../$DEPLOY_DIR/llm.zip . -x "*.pyc" "__pycache__/*" "*.db" "*.log"

@@ -57,7 +57,7 @@ Without Google OAuth, you can still play games, but they won't be saved to your 
 See `env.example` for configuration options. If using Ollama, cloud API keys are not required.
 
 ## Development
-- Python 3.11+
+- Python 3.13+ (CI/CD), Python 3.12 (AWS Lambda)
 - Run tests: `pytest`
 
 ## 🔐 Security & Production Deployment

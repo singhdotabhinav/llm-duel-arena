@@ -46,23 +46,6 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
   })
 }
 
-resource "aws_iam_role_policy" "lambda_secrets" {
-  name = "${var.project_name}-lambda-secrets-${var.environment}"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue"
-        ]
-        Resource = [
-          aws_secretsmanager_secret.openai_api_key.arn,
-          aws_secretsmanager_secret.google_oauth.arn
-        ]
-      }
-    ]
-  })
-}
+# Removed lambda_secrets policy - no secrets needed
+# Using Cognito for auth (no Google OAuth secrets)
+# Using Ollama/HuggingFace for LLM (no OpenAI API key secrets)

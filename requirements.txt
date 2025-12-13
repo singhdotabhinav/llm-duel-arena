@@ -6,6 +6,7 @@
 fastapi==0.115.0
 mangum==0.17.0
 pydantic==2.9.2
+email-validator>=2.1.0  # Required for Pydantic email validation
 
 # AWS and authentication
 boto3>=1.34.0

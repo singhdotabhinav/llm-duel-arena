@@ -52,9 +52,12 @@ node_modules/
 # Redis dumps (if using)
 dump.rdb
 
-# Local test files
-test_*.py
-*.test.py
+# Local test files (but allow tests/ directory)
+# Ignore test files in root, but allow in tests/ directory
+/test_*.py
+/*.test.py
+# Allow tests in tests/ directory
+!tests/test_*.py
 
 # Temporary files
 *.tmp

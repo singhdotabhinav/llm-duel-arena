@@ -9,10 +9,7 @@ from ..services.chess_engine import ChessEngine
 from .base import ModelAdapter
 
 
-SYSTEM_PROMPT = (
-    "You are playing chess. Respond with ONLY one move in UCI format like 'e2e4'. "
-    "Do not include explanations."
-)
+SYSTEM_PROMPT = "You are playing chess. Respond with ONLY one move in UCI format like 'e2e4'. " "Do not include explanations."
 
 
 class OpenAIAdapter(ModelAdapter):
@@ -35,11 +32,11 @@ class OpenAIAdapter(ModelAdapter):
                 temperature=0,
                 max_tokens=8,
             )
-            
+
             # Track token usage from OpenAI response
             if resp.usage:
                 self.tokens_used += resp.usage.total_tokens
-            
+
             content = resp.choices[0].message.content.strip()
             move = self._extract_uci(content)
             if move in legal:
@@ -53,7 +50,3 @@ class OpenAIAdapter(ModelAdapter):
         if len(text) in (4, 5):
             return text
         return None
-
-
-
-

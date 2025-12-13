@@ -9,10 +9,7 @@ from ..services.chess_engine import ChessEngine
 from .base import ModelAdapter
 
 
-SYSTEM_PROMPT = (
-    "You are playing chess. Respond with ONLY one move in UCI format like 'e2e4'. "
-    "Do not include explanations."
-)
+SYSTEM_PROMPT = "You are playing chess. Respond with ONLY one move in UCI format like 'e2e4'. " "Do not include explanations."
 
 
 class AnthropicAdapter(ModelAdapter):
@@ -33,11 +30,11 @@ class AnthropicAdapter(ModelAdapter):
                 max_tokens=8,
                 temperature=0,
             )
-            
+
             # Track token usage from Anthropic response
             if resp.usage:
                 self.tokens_used += resp.usage.input_tokens + resp.usage.output_tokens
-            
+
             content = resp.content[0].text.strip() if resp.content else ""
             move = self._extract_uci(content)
             if move in legal:
@@ -51,7 +48,3 @@ class AnthropicAdapter(ModelAdapter):
         if len(text) in (4, 5):
             return text
         return None
-
-
-
-

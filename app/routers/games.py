@@ -49,23 +49,41 @@ async def health():
 async def list_games():
     """List all games with summary info"""
     games_list = []
-    # Access games via get_state to avoid direct access to private _games
-    all_game_ids = list(game_manager._games.keys())  # type: ignore
-    for game_id in all_game_ids:
-        state = game_manager.get_state(game_id)
-        if state:
+    # GameManager is now stateless - use database service to list games
+    # For now, return empty list if database is not available (e.g., in tests)
+    # In production, this would scan DynamoDB table
+    try:
+        from ..services.active_game_db import active_game_service
+        
+        # If database is not available (e.g., in tests), return empty list
+        if not active_game_service.table:
+            return {"games": []}
+        
+        # Scan DynamoDB table to get all games
+        # Note: This is a simple scan - in production you might want pagination
+        response = active_game_service.table.scan()
+        items = response.get("Items", [])
+        
+        for item in items:
             games_list.append(
                 {
-                    "game_id": game_id,
-                    "game_type": state.game_type,
-                    "white_model": state.white_model or "Unknown",
-                    "black_model": state.black_model or "Unknown",
-                    "moves_count": len(state.moves),
-                    "over": state.over,
-                    "result": state.result,
-                    "turn": state.turn,  # type: ignore
+                    "game_id": item.get("game_id", ""),
+                    "game_type": item.get("game_type", "unknown"),
+                    "white_model": item.get("white_model") or "Unknown",
+                    "black_model": item.get("black_model") or "Unknown",
+                    "moves_count": len(item.get("moves", [])),
+                    "over": item.get("over", False),
+                    "result": item.get("result", {}),
+                    "turn": item.get("turn", "white"),
                 }
             )
+    except Exception as e:
+        # Log error but return empty list to avoid breaking the endpoint
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Error listing games: {e}")
+        return {"games": []}
+    
     return {"games": games_list}
 
 

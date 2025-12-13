@@ -114,7 +114,7 @@ jobs:
           ./build-lambda.sh ${ENV}
 
       - name: Upload Lambda packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lambda-packages
           path: infrastructure/deployments/*.zip
@@ -173,14 +173,14 @@ jobs:
           terraform output -json > ../../terraform-outputs.json
 
       - name: Upload Terraform outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs
           path: terraform-outputs.json
 
       # Step 2: Deploy Lambda Functions
       - name: Download Lambda packages
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: lambda-packages
           path: infrastructure/deployments/
@@ -247,7 +247,7 @@ jobs:
 
       # Step 4: Integration Tests
       - name: Download Terraform outputs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: terraform-outputs
         continue-on-error: true

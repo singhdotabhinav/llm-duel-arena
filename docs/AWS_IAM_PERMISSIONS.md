@@ -61,31 +61,16 @@ Create an IAM user with the following policy attached:
       "Resource": ["arn:aws:lambda:*:*:function:llm-duel-arena-*"]
     },
     {
+      "Sid": "LambdaList",
+      "Effect": "Allow",
+      "Action": ["lambda:ListFunctions","lambda:ListFunctionUrlConfigs","lambda:GetFunction"],
+      "Resource": ["*"]
+    },
+    {
       "Sid": "APIGatewayAll",
       "Effect": "Allow",
       "Action": ["apigateway:*"],
-      "Resource": [
-        "arn:aws:apigateway:*::/apis",
-        "arn:aws:apigateway:*::/apis/*",
-        "arn:aws:apigateway:*::/apis/*/*",
-        "arn:aws:apigateway:*::/restapis",
-        "arn:aws:apigateway:*::/restapis/*",
-        "arn:aws:apigateway:*::/restapis/*/*",
-        "arn:aws:apigateway:*::/*"
-      ]
-    },
-    {
-      "Sid": "APIGatewayTags",
-      "Effect": "Allow",
-      "Action": [
-        "apigateway:POST",
-        "apigateway:GET",
-        "apigateway:DELETE"
-      ],
-      "Resource": [
-        "arn:aws:apigateway:*::/tags/*",
-        "arn:aws:apigateway:*::/tags/arn*"
-      ]
+      "Resource": ["arn:aws:apigateway:*::/*"]
     },
     {
       "Sid": "CloudFrontAll",
@@ -96,40 +81,15 @@ Create an IAM user with the following policy attached:
     {
       "Sid": "IAMLambdaRoles",
       "Effect": "Allow",
-      "Action": [
-        "iam:CreateRole",
-        "iam:GetRole",
-        "iam:UpdateRole",
-        "iam:DeleteRole",
-        "iam:AttachRolePolicy",
-        "iam:DetachRolePolicy",
-        "iam:ListRolePolicies",
-        "iam:ListAttachedRolePolicies",
-        "iam:PutRolePolicy",
-        "iam:DeleteRolePolicy",
-        "iam:GetRolePolicy",
-        "iam:TagRole",
-        "iam:UntagRole",
-        "iam:ListRoleTags"
-      ],
-      "Resource": [
-        "arn:aws:iam::*:role/llm-duel-arena-*"
-      ]
+      "Action": ["iam:CreateRole","iam:GetRole","iam:UpdateRole","iam:DeleteRole","iam:AttachRolePolicy","iam:DetachRolePolicy","iam:ListRolePolicies","iam:ListAttachedRolePolicies","iam:PutRolePolicy","iam:DeleteRolePolicy","iam:GetRolePolicy","iam:TagRole","iam:UntagRole","iam:ListRoleTags"],
+      "Resource": ["arn:aws:iam::*:role/llm-duel-arena-*"]
     },
     {
       "Sid": "IAMPassRole",
       "Effect": "Allow",
-      "Action": [
-        "iam:PassRole"
-      ],
-      "Resource": [
-        "arn:aws:iam::*:role/llm-duel-arena-*"
-      ],
-      "Condition": {
-        "StringEquals": {
-          "iam:PassedToService": "lambda.amazonaws.com"
-        }
-      }
+      "Action": ["iam:PassRole"],
+      "Resource": ["arn:aws:iam::*:role/llm-duel-arena-*"],
+      "Condition": {"StringEquals": {"iam:PassedToService": "lambda.amazonaws.com"}}
     },
     {
       "Sid": "CloudWatchLogs",
@@ -140,7 +100,7 @@ Create an IAM user with the following policy attached:
     {
       "Sid": "ReadOnly",
       "Effect": "Allow",
-      "Action": ["iam:GetPolicy", "iam:ListPolicies", "sts:GetCallerIdentity", "ec2:DescribeRegions", "ec2:DescribeAvailabilityZones"],
+      "Action": ["iam:GetPolicy","iam:ListPolicies","sts:GetCallerIdentity","ec2:DescribeRegions","ec2:DescribeAvailabilityZones"],
       "Resource": ["*"]
     }
   ]

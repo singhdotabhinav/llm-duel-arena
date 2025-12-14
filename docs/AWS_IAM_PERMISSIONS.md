@@ -65,8 +65,10 @@ Create an IAM user with the following policy attached:
       "Effect": "Allow",
       "Action": ["apigateway:*"],
       "Resource": [
+        "arn:aws:apigateway:*::/apis",
         "arn:aws:apigateway:*::/apis/*",
         "arn:aws:apigateway:*::/apis/*/*",
+        "arn:aws:apigateway:*::/restapis",
         "arn:aws:apigateway:*::/restapis/*",
         "arn:aws:apigateway:*::/restapis/*/*"
       ]

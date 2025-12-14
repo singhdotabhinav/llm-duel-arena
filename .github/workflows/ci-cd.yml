@@ -233,6 +233,12 @@ jobs:
           fi
           echo "✅ terraform.tfvars ready"
 
+      - name: Download Lambda packages
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-packages
+          path: infrastructure/deployments/
+
       - name: Terraform Plan
         working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
         run: |
@@ -258,11 +264,7 @@ jobs:
           path: terraform-outputs.json
 
       # Step 2: Deploy Lambda Functions
-      - name: Download Lambda packages
-        uses: actions/download-artifact@v4
-        with:
-          name: lambda-packages
-          path: infrastructure/deployments/
+      # Note: Lambda packages are already downloaded before Terraform Apply
 
       - name: Deploy Lambda functions
         env:

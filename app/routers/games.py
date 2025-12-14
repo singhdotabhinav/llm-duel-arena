@@ -105,9 +105,7 @@ async def get_my_games(request: Request):
 
     # Use email from user object (user.email or user.id if email not available)
     user_email = (
-        user.email
-        if hasattr(user, "email") and user.email
-        else (user.get("email") if isinstance(user, dict) else user.id)
+        user.email if hasattr(user, "email") and user.email else (user.get("email") if isinstance(user, dict) else user.id)
     )
     user_data = dynamodb_service.get_user(user_email)
 
@@ -170,9 +168,7 @@ async def random_duel(req: CreateGameRequest, request: Request):
     # Get user before creating game so we can store user_id
     user = get_current_user(request)
     user_id = user.id if user else None
-    state = game_manager.create_game(
-        game_type, white, black, initial_state, user_id=user_id
-    )
+    state = game_manager.create_game(game_type, white, black, initial_state, user_id=user_id)
 
     # Note: Game will be saved to user's history when it completes (in match_runner)
 
@@ -194,9 +190,7 @@ async def create_game(req: CreateGameRequest, request: Request):
     # Get user before creating game so we can store user_id
     user = get_current_user(request)
     user_id = user.id if user else None
-    state = game_manager.create_game(
-        game_type, req.white_model, req.black_model, initial_state, user_id=user_id
-    )
+    state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state, user_id=user_id)
 
     # Note: Game will be saved to user's history when it completes (in match_runner)
 
@@ -209,8 +203,7 @@ async def get_state(game_id: str):
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
     print(
-        f"[API] Returning state for {game_id}: "
-        f"White={state.white_tokens}, Black={state.black_tokens}",
+        f"[API] Returning state for {game_id}: " f"White={state.white_tokens}, Black={state.black_tokens}",
     )
     return _to_schema(state)
 

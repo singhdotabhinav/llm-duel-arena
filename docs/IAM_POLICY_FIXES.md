@@ -7,17 +7,30 @@
 **Error:**
 ```
 AccessDeniedException: User ... is not authorized to perform: apigateway:POST 
-on resource: arn:aws:apigateway:*::/tags/*
+on resource: arn:aws:apigateway:*::/tags/arn:aws:apigateway:us-east-1::/v2/apis/*
 ```
 
-**Root Cause:** API Gateway v2 resources use tags, and the resource ARN pattern didn't include `/tags/*`.
+**Root Cause:** API Gateway v2 resources use tags with complex resource ARNs that include the full resource ARN being tagged.
 
-**Fix Applied:** ✅ Updated `APIGatewayAll` statement to include:
-- `arn:aws:apigateway:*::/tags/*`
-- `arn:aws:apigateway:*::/apis/*/*` (for nested resources)
-- `arn:aws:apigateway:*::/restapis/*/*` (for REST API nested resources)
+**Fix Applied:** ✅ Added separate `APIGatewayTags` statement with:
+- `apigateway:POST`, `apigateway:GET`, `apigateway:DELETE` actions
+- Resource patterns: `/tags/*` and `/tags/arn*` to match nested tag ARNs
 
-### 2. ❌ IAM CreateRole Still Failing
+### 2. ❌ IAM TagRole Permission Missing
+
+**Error:**
+```
+AccessDenied: User ... is not authorized to perform: iam:TagRole
+```
+
+**Root Cause:** Terraform needs permission to tag IAM roles when creating them.
+
+**Fix Applied:** ✅ Added to `IAMLambdaRoles` statement:
+- `iam:TagRole`
+- `iam:UntagRole`
+- `iam:ListRoleTags`
+
+### 3. ❌ IAM CreateRole Still Failing
 
 **Error:**
 ```
@@ -76,18 +89,50 @@ After updating, verify in the JSON tab:
 
 ### Step 3: Verify API Gateway Resources
 
-Check the `APIGatewayAll` statement includes:
+Check you have **TWO API Gateway statements**:
+
+1. **APIGatewayAll** statement:
 ```json
-"Resource": [
-  "arn:aws:apigateway:*::/apis/*",
-  "arn:aws:apigateway:*::/apis/*/*",
-  "arn:aws:apigateway:*::/tags/*",        // ← Must include this!
-  "arn:aws:apigateway:*::/restapis/*",
-  "arn:aws:apigateway:*::/restapis/*/*"
+{
+  "Sid": "APIGatewayAll",
+  "Effect": "Allow",
+  "Action": ["apigateway:*"],
+  "Resource": [
+    "arn:aws:apigateway:*::/apis/*",
+    "arn:aws:apigateway:*::/apis/*/*",
+    "arn:aws:apigateway:*::/restapis/*",
+    "arn:aws:apigateway:*::/restapis/*/*"
+  ]
+}
+```
+
+2. **APIGatewayTags** statement (NEW):
+```json
+{
+  "Sid": "APIGatewayTags",
+  "Effect": "Allow",
+  "Action": ["apigateway:POST", "apigateway:GET", "apigateway:DELETE"],
+  "Resource": [
+    "arn:aws:apigateway:*::/tags/*",
+    "arn:aws:apigateway:*::/tags/arn*"
+  ]
+}
+```
+
+### Step 4: Verify IAM Tagging Permissions
+
+Check the `IAMLambdaRoles` statement includes:
+```json
+"Action": [
+  "iam:CreateRole",
+  "iam:TagRole",      // ← Must include this!
+  "iam:UntagRole",    // ← Must include this!
+  "iam:ListRoleTags", // ← Must include this!
+  // ... other role actions
 ]
 ```
 
-### Step 4: Test Terraform
+### Step 5: Test Terraform
 
 ```bash
 cd infrastructure/environments/int
@@ -96,6 +141,7 @@ terraform plan
 
 Expected: ✅ No `AccessDenied` errors for:
 - `iam:CreateRole`
+- `iam:TagRole`
 - `apigateway:POST` on `/tags/*`
 
 ## Quick Verification Script

@@ -67,9 +67,21 @@ Create an IAM user with the following policy attached:
       "Resource": [
         "arn:aws:apigateway:*::/apis/*",
         "arn:aws:apigateway:*::/apis/*/*",
-        "arn:aws:apigateway:*::/tags/*",
         "arn:aws:apigateway:*::/restapis/*",
         "arn:aws:apigateway:*::/restapis/*/*"
+      ]
+    },
+    {
+      "Sid": "APIGatewayTags",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:POST",
+        "apigateway:GET",
+        "apigateway:DELETE"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:*::/tags/*",
+        "arn:aws:apigateway:*::/tags/arn*"
       ]
     },
     {
@@ -92,7 +104,10 @@ Create an IAM user with the following policy attached:
         "iam:ListAttachedRolePolicies",
         "iam:PutRolePolicy",
         "iam:DeleteRolePolicy",
-        "iam:GetRolePolicy"
+        "iam:GetRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:ListRoleTags"
       ],
       "Resource": [
         "arn:aws:iam::*:role/llm-duel-arena-*"

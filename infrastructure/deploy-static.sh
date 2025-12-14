@@ -49,7 +49,6 @@ if [ -n "$CLOUDFRONT_ID" ]; then
   INVALIDATION_ID=$(aws cloudfront create-invalidation \
     --distribution-id ${CLOUDFRONT_ID} \
     --paths "/*" \
-    --region ${REGION} \
     --query 'Invalidation.Id' \
     --output text)
   

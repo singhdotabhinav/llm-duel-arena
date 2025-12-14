@@ -30,6 +30,12 @@ Based on the infrastructure code analysis, the project uses:
 
 Create an IAM user with the following policy attached:
 
+> **⚠️ CRITICAL**: The IAM permissions are split into **TWO separate statements**:
+> - **IAMLambdaRoles**: Role management actions (CreateRole, UpdateRole, etc.) - **NO condition**
+> - **IAMPassRole**: PassRole action - **WITH condition** (only for Lambda service)
+> 
+> **DO NOT** apply the condition to CreateRole - it will block role creation!
+
 > **Note**: This policy has been optimized to be under AWS's 2048 character limit for inline policies by using wildcards (`*`) for actions, while still scoping resources to your project (`llm-duel-arena-*`). This maintains security while meeting size constraints.
 
 ```json
@@ -69,9 +75,37 @@ Create an IAM user with the following policy attached:
     {
       "Sid": "IAMLambdaRoles",
       "Effect": "Allow",
-      "Action": ["iam:CreateRole", "iam:GetRole", "iam:UpdateRole", "iam:DeleteRole", "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:PassRole"],
-      "Resource": ["arn:aws:iam::*:role/llm-duel-arena-*"],
-      "Condition": {"StringEquals": {"iam:PassedToService": "lambda.amazonaws.com"}}
+      "Action": [
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:DeleteRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/llm-duel-arena-*"
+      ]
+    },
+    {
+      "Sid": "IAMPassRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/llm-duel-arena-*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
     },
     {
       "Sid": "CloudWatchLogs",
@@ -88,6 +122,22 @@ Create an IAM user with the following policy attached:
   ]
 }
 ```
+
+## ⚠️ Important: IAM Permissions Structure
+
+The IAM permissions are **split into two statements** for a critical reason:
+
+1. **IAMLambdaRoles** (lines 76-94): 
+   - Contains: `CreateRole`, `UpdateRole`, `DeleteRole`, etc.
+   - **NO Condition** - These actions don't use `PassedToService`
+   - Required for Terraform to create IAM roles
+
+2. **IAMPassRole** (lines 95-109):
+   - Contains: `PassRole` only
+   - **WITH Condition** - Restricts to Lambda service only
+   - Security best practice
+
+**Why this matters:** If you apply the condition to `CreateRole`, Terraform will fail with "AccessDenied" when trying to create roles. The condition only applies to `PassRole`.
 
 ## Step-by-Step: Create IAM User with Custom Policy
 
@@ -120,10 +170,6 @@ Create an IAM user with the following policy attached:
    - Click "Create access key"
    - Select "Command Line Interface (CLI)"
    - Save both Access Key ID and Secret Access Key
-
-### Option 2: Using Inline Policy (If Managed Policy Not Available)
-
-If you must use an inline policy and hit the character limit, you can split permissions across multiple inline policies or use the optimized version above.
 
 ### Option 2: Using AWS CLI
 

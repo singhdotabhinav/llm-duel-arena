@@ -3,7 +3,12 @@ from typing import Optional
 from ..services.game_manager import game_manager
 from ..services.match_runner import match_runner
 from ..services.game_db_service import save_game_to_db, get_user_games
-from ..schemas import CreateGameRequest, MoveRequest, GameState as GameStateSchema, MoveRecord as MoveRecordSchema
+from ..schemas import (
+    CreateGameRequest,
+    MoveRequest,
+    GameState as GameStateSchema,
+    MoveRecord as MoveRecordSchema,
+)
 from ..core.auth import get_current_user_obj as get_current_user
 
 router = APIRouter()
@@ -174,7 +179,12 @@ async def random_duel(req: CreateGameRequest, request: Request):
     # Don't auto-start - let user click Start button
     # match_runner.start(state.game_id, white, black)
 
-    return {"game_id": state.game_id, "game_type": state.game_type, "white_model": white, "black_model": black}
+    return {
+        "game_id": state.game_id,
+        "game_type": state.game_type,
+        "white_model": white,
+        "black_model": black,
+    }
 
 
 @router.post("/", response_model=GameStateSchema)

@@ -103,10 +103,12 @@ async def get_my_games(request: Request):
     # Fetch from DynamoDB
     from ..services.dynamodb_service import dynamodb_service
 
-    # Use email from user object (user.email or user.id if email not available)
+    # Use email from user object (email is the DynamoDB key)
     user_email = (
-        user.email if hasattr(user, "email") and user.email else (user.get("email") if isinstance(user, dict) else user.id)
+        user.email if hasattr(user, "email") and user.email else (user.get("email") if isinstance(user, dict) else None)
     )
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found")
     user_data = dynamodb_service.get_user(user_email)
 
     games_list = []
@@ -165,10 +167,10 @@ async def random_duel(req: CreateGameRequest, request: Request):
     initial_state = req.initial_state or req.fen
 
     logger.info(f"Creating {game_type} game with {white} vs {black}")
-    # Get user before creating game so we can store user_id
+    # Get user before creating game so we can store user_id (use email as key)
     user = get_current_user(request)
-    user_id = user.id if user else None
-    state = game_manager.create_game(game_type, white, black, initial_state, user_id=user_id)
+    user_email = user.email if user and hasattr(user, "email") and user.email else None
+    state = game_manager.create_game(game_type, white, black, initial_state, user_id=user_email)
 
     # Note: Game will be saved to user's history when it completes (in match_runner)
 
@@ -187,10 +189,10 @@ async def random_duel(req: CreateGameRequest, request: Request):
 async def create_game(req: CreateGameRequest, request: Request):
     game_type = req.game_type or "chess"
     initial_state = req.initial_state or req.fen
-    # Get user before creating game so we can store user_id
+    # Get user before creating game so we can store user_id (use email as key)
     user = get_current_user(request)
-    user_id = user.id if user else None
-    state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state, user_id=user_id)
+    user_email = user.email if user and hasattr(user, "email") and user.email else None
+    state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state, user_id=user_email)
 
     # Note: Game will be saved to user's history when it completes (in match_runner)
 
@@ -215,10 +217,12 @@ async def post_move(game_id: str, req: MoveRequest, request: Request):
         raise HTTPException(status_code=404, detail="Game not found")
     updated = game_manager.push_move(game_id, req.move, model_name="manual")
 
-    # Update database if user is logged in
+    # Update database if user is logged in (use email as key)
     user = get_current_user(request)
     if user:
-        save_game_to_db(updated, user.id)
+        user_email = user.email if hasattr(user, "email") and user.email else None
+        if user_email:
+            save_game_to_db(updated, user_email)
 
     return _to_schema(updated)
 

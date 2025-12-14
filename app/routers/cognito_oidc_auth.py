@@ -446,7 +446,15 @@ async def logout(request: Request):
 
     # Optionally redirect to Cognito logout URL
     if settings.cognito_domain:
-        logout_url = f"https://{settings.cognito_domain}.auth.{settings.cognito_region}.amazoncognito.com/logout?client_id={settings.cognito_client_id}&logout_uri={settings.cognito_logout_url}"
+        # Handle both formats: full domain or just prefix
+        if ".auth." in settings.cognito_domain or ".amazoncognito.com" in settings.cognito_domain:
+            # Already a full domain, use as-is
+            domain = settings.cognito_domain
+        else:
+            # Just a prefix, construct full domain
+            domain = f"{settings.cognito_domain}.auth.{settings.cognito_region}.amazoncognito.com"
+        
+        logout_url = f"https://{domain}/logout?client_id={settings.cognito_client_id}&logout_uri={settings.cognito_logout_url}"
         return RedirectResponse(url=logout_url, status_code=302)
 
     # Simple redirect to home

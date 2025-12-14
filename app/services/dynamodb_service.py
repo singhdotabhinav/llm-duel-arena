@@ -93,12 +93,15 @@ class DynamoDBService:
         Increments total_games_played and adds to game_list map.
         """
         if not self.table:
+            logger.warning("DynamoDB table not initialized")
             return False
 
         # If email is None, skip saving (user not logged in)
         if not email:
             logger.info(f"Skipping game save - no user email provided for game {game_id}")
             return False
+        
+        logger.info(f"Adding game {game_id} to user {email}'s history")
 
         try:
             # Ensure game_id is a string

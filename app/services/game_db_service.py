@@ -17,10 +17,13 @@ def save_game_to_db(game_state: GameState, user_id: str = None):
         return  # Only save completed games
 
     # Use user_id from game_state if not provided
+    # user_id should be the email address (used as DynamoDB key)
     email = user_id or game_state.user_id
     if not email:
         logger.warning(f"Game {game_state.game_id} completed but no user_id - skipping user history save")
         return
+    
+    logger.info(f"Saving game {game_state.game_id} to user history: {email}")
 
     # Prepare game data
     game_data = {

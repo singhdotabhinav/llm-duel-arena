@@ -70,7 +70,8 @@ Create an IAM user with the following policy attached:
         "arn:aws:apigateway:*::/apis/*/*",
         "arn:aws:apigateway:*::/restapis",
         "arn:aws:apigateway:*::/restapis/*",
-        "arn:aws:apigateway:*::/restapis/*/*"
+        "arn:aws:apigateway:*::/restapis/*/*",
+        "arn:aws:apigateway:*::/*"
       ]
     },
     {

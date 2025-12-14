@@ -64,7 +64,13 @@ Create an IAM user with the following policy attached:
       "Sid": "APIGatewayAll",
       "Effect": "Allow",
       "Action": ["apigateway:*"],
-      "Resource": ["arn:aws:apigateway:*::/apis/*", "arn:aws:apigateway:*::/restapis/*"]
+      "Resource": [
+        "arn:aws:apigateway:*::/apis/*",
+        "arn:aws:apigateway:*::/apis/*/*",
+        "arn:aws:apigateway:*::/tags/*",
+        "arn:aws:apigateway:*::/restapis/*",
+        "arn:aws:apigateway:*::/restapis/*/*"
+      ]
     },
     {
       "Sid": "CloudFrontAll",
@@ -261,6 +267,44 @@ aws lambda list-functions --query "Functions[?contains(FunctionName, 'llm-duel-a
 5. **Limit Scope**: Further restrict resources by environment if needed
 
 ## Troubleshooting
+
+### Error: `apigateway:POST` on `/tags/*` resource
+
+**Symptom:**
+```
+AccessDeniedException: User ... is not authorized to perform: apigateway:POST 
+on resource: arn:aws:apigateway:*::/tags/*
+```
+
+**Solution:** The policy has been updated to include `/tags/*` in the API Gateway resources. Make sure you've copied the latest policy version from this document.
+
+### Error: `iam:CreateRole` Access Denied
+
+**Symptom:**
+```
+AccessDenied: User ... is not authorized to perform: iam:CreateRole
+```
+
+**Possible Causes:**
+1. **Policy not updated**: The old policy with a condition on `CreateRole` is still active
+2. **Policy not attached**: The policy isn't attached to the user
+3. **Wrong user**: Terraform is using credentials from a different user
+
+**Solution Steps:**
+1. Go to **IAM → Users → llm-duel-arena-deploy**
+2. Check **"Permissions"** tab - verify the policy is attached
+3. Click on the policy name → **"JSON"** tab
+4. Verify you see **TWO separate IAM statements**:
+   - One with `CreateRole` and **NO Condition** ✅
+   - One with `PassRole` and **WITH Condition** ✅
+5. If you see a condition on `CreateRole`, delete and recreate the policy with the correct JSON from this document
+6. Verify AWS credentials in your environment:
+   ```bash
+   aws sts get-caller-identity
+   ```
+   Should show: `arn:aws:iam::*:user/llm-duel-arena-deploy`
+
+### Other Issues
 
 ### "Access Denied" Errors
 

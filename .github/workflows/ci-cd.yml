@@ -328,10 +328,19 @@ jobs:
 
       # Step 4: Integration Tests
       - name: Download Terraform outputs
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: terraform-outputs
-        continue-on-error: true
+          path: .
+          if-no-files-found: ignore
+      
+      - name: Ensure terraform outputs file exists
+        run: |
+          if [ ! -f terraform-outputs.json ]; then
+            echo "⚠️  Terraform outputs artifact not found - creating empty file for integration tests"
+            echo "{}" > terraform-outputs.json
+          fi
 
       - name: Get API Gateway URL
         id: get-api-url

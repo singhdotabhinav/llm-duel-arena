@@ -2,10 +2,13 @@
 
 from typing import List, Optional
 from datetime import datetime
+import logging
 
 from app.services.game_manager import GameState
 from app.services.dynamodb_service import dynamodb_service
 import json
+
+logger = logging.getLogger(__name__)
 
 
 def save_game_to_db(game_state: GameState, user_id: str = None):
@@ -13,11 +16,19 @@ def save_game_to_db(game_state: GameState, user_id: str = None):
     if not game_state.over:
         return  # Only save completed games
 
+    # Use user_id from game_state if not provided
+    email = user_id or game_state.user_id
+    if not email:
+        logger.warning(f"Game {game_state.game_id} completed but no user_id - skipping user history save")
+        return
+
     # Prepare game data
     game_data = {
         "game_id": game_state.game_id,
-        "game_type": game_state.game_type,
-        "result": game_state.result,
+        "game": game_state.game_type,  # Use 'game' key to match frontend expectation
+        "p1": game_state.white_model or "Unknown",  # Use 'p1' key to match frontend expectation
+        "p2": game_state.black_model or "Unknown",  # Use 'p2' key to match frontend expectation
+        "result": game_state.result.get("winner") or game_state.result.get("result") or "draw",  # Extract winner/result string
         "white_model": game_state.white_model,
         "black_model": game_state.black_model,
         "white_tokens": game_state.white_tokens,
@@ -26,10 +37,8 @@ def save_game_to_db(game_state: GameState, user_id: str = None):
         "completed_at": datetime.utcnow().isoformat() + "Z",
     }
 
-    # If user_id is provided, save to that user's history
-    # Otherwise, we could infer from the models or skip user association
-    if user_id:
-        dynamodb_service.add_game_result(user_id, game_state.game_id, game_data)
+    # Save to user's history (email is used as the key)
+    dynamodb_service.add_game_result(email, game_state.game_id, game_data)
 
 
 def get_user_games(user_id: str) -> List[dict]:

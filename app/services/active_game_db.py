@@ -48,6 +48,7 @@ class ActiveGameService:
                 "black_model": state.black_model,
                 "white_tokens": state.white_tokens,
                 "black_tokens": state.black_tokens,
+                "user_id": state.user_id,
                 "moves": [
                     {
                         "ply": m.ply,
@@ -118,6 +119,7 @@ class ActiveGameService:
                 white_tokens=int(item.get("white_tokens", 0)),
                 black_tokens=int(item.get("black_tokens", 0)),
                 moves=moves,
+                user_id=item.get("user_id"),  # Load user_id from DynamoDB
             )
         except ClientError as e:
             logger.error(f"Error loading game state {game_id}: {e}")

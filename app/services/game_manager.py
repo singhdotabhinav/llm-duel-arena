@@ -44,6 +44,7 @@ class GameState:
     black_model: str | None = None
     white_tokens: int = 0  # Total tokens used by white model
     black_tokens: int = 0  # Total tokens used by black model
+    user_id: str | None = None  # User who created the game (email or Cognito sub)
 
 
 class GameManager:
@@ -68,7 +69,7 @@ class GameManager:
             raise ValueError(f"Unknown game type: {game_type}")
 
     def create_game(
-        self, game_type: GameType, white_model: Optional[str], black_model: Optional[str], initial_state: Optional[str] = None
+        self, game_type: GameType, white_model: Optional[str], black_model: Optional[str], initial_state: Optional[str] = None, user_id: Optional[str] = None
     ) -> GameState:
         game_id = uuid.uuid4().hex
         engine = self._create_engine(game_type, initial_state)
@@ -84,6 +85,7 @@ class GameManager:
             result=engine.result(),
             white_model=white_model,
             black_model=black_model,
+            user_id=user_id,
         )
 
         # Save to DynamoDB

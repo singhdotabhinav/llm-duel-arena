@@ -73,7 +73,8 @@ class MatchRunner:
                 if state.over:
                     from .game_db_service import save_game_to_db
 
-                    save_game_to_db(state)
+                    # Use stored user_id from game state
+                    save_game_to_db(state, state.user_id)
                 return {"status": "timeout", "message": "Turn expired"}
 
         # Generate move
@@ -142,7 +143,8 @@ class MatchRunner:
             if new_state and new_state.over:
                 from .game_db_service import save_game_to_db
 
-                save_game_to_db(new_state)
+                # Use stored user_id from game state
+                save_game_to_db(new_state, new_state.user_id)
 
             return {"status": "success", "move": move}
         else:
@@ -182,7 +184,8 @@ class MatchRunner:
                     if state.over:
                         from .game_db_service import save_game_to_db
 
-                        save_game_to_db(state)
+                        # Use stored user_id from game state
+                        save_game_to_db(state, state.user_id)
                     return {"status": "failure", "message": "Force failure applied"}
 
             return {"status": "error", "message": "Failed to produce move and no fallback available"}

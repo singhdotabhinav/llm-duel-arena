@@ -95,6 +95,11 @@ class DynamoDBService:
         if not self.table:
             return False
 
+        # If email is None, skip saving (user not logged in)
+        if not email:
+            logger.info(f"Skipping game save - no user email provided for game {game_id}")
+            return False
+
         try:
             # Ensure game_id is a string
             game_uuid = str(game_id)

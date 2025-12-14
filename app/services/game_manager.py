@@ -69,7 +69,12 @@ class GameManager:
             raise ValueError(f"Unknown game type: {game_type}")
 
     def create_game(
-        self, game_type: GameType, white_model: Optional[str], black_model: Optional[str], initial_state: Optional[str] = None, user_id: Optional[str] = None
+        self,
+        game_type: GameType,
+        white_model: Optional[str],
+        black_model: Optional[str],
+        initial_state: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> GameState:
         game_id = uuid.uuid4().hex
         engine = self._create_engine(game_type, initial_state)

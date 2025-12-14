@@ -215,6 +215,24 @@ jobs:
             -backend-config="region=${{ env.AWS_REGION }}" \
             -no-color
 
+      - name: Prepare Terraform Variables
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+        run: |
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+          # Create terraform.tfvars from example if it doesn't exist
+          if [ ! -f "terraform.tfvars" ]; then
+            if [ -f "terraform.tfvars.example" ]; then
+              echo "📋 Creating terraform.tfvars from example..."
+              cp terraform.tfvars.example terraform.tfvars
+            else
+              echo "📋 Creating terraform.tfvars with defaults..."
+              echo "aws_region  = \"${{ env.AWS_REGION }}\"" > terraform.tfvars
+              echo "environment = \"${ENV}\"" >> terraform.tfvars
+              echo "project_name = \"llm-duel-arena\"" >> terraform.tfvars
+            fi
+          fi
+          echo "✅ terraform.tfvars ready"
+
       - name: Terraform Plan
         working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
         run: |

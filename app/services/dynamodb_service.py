@@ -100,7 +100,7 @@ class DynamoDBService:
         if not email:
             logger.info(f"Skipping game save - no user email provided for game {game_id}")
             return False
-        
+
         logger.info(f"Adding game {game_id} to user {email}'s history")
 
         try:

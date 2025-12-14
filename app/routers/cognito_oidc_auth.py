@@ -453,7 +453,7 @@ async def logout(request: Request):
         else:
             # Just a prefix, construct full domain
             domain = f"{settings.cognito_domain}.auth.{settings.cognito_region}.amazoncognito.com"
-        
+
         logout_url = f"https://{domain}/logout?client_id={settings.cognito_client_id}&logout_uri={settings.cognito_logout_url}"
         return RedirectResponse(url=logout_url, status_code=302)
 

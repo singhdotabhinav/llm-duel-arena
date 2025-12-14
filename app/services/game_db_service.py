@@ -22,7 +22,7 @@ def save_game_to_db(game_state: GameState, user_id: str = None):
     if not email:
         logger.warning(f"Game {game_state.game_id} completed but no user_id - skipping user history save")
         return
-    
+
     logger.info(f"Saving game {game_state.game_id} to user history: {email}")
 
     # Prepare game data

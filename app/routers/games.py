@@ -208,7 +208,10 @@ async def get_state(game_id: str):
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
-    print(f"[API] Returning state for {game_id}: White={state.white_tokens}, Black={state.black_tokens}")
+    print(
+        f"[API] Returning state for {game_id}: "
+        f"White={state.white_tokens}, Black={state.black_tokens}",
+    )
     return _to_schema(state)
 
 

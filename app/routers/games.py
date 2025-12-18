@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import Optional
 from ..services.game_manager import game_manager
@@ -11,6 +12,7 @@ from ..schemas import (
 )
 from ..core.auth import get_current_user_obj as get_current_user
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -87,9 +89,6 @@ async def list_games():
             )
     except Exception as e:
         # Log error but return empty list to avoid breaking the endpoint
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.warning(f"Error listing games: {e}")
         return {"games": []}
 
@@ -99,9 +98,6 @@ async def list_games():
 @router.get("/my-games")
 async def get_my_games(request: Request):
     """Get games for the logged-in user from DynamoDB"""
-    import logging
-    logger = logging.getLogger(__name__)
-    
     user = get_current_user(request)
     if not user:
         logger.warning("get_my_games: User not authenticated")
@@ -172,9 +168,7 @@ async def get_my_games(request: Request):
 async def random_duel(req: CreateGameRequest, request: Request):
     """Start a random duel with default models"""
     import random
-    import logging
 
-    logger = logging.getLogger(__name__)
     logger.info(f"Random duel requested with game_type: {req.game_type}")
 
     models = [

@@ -28,7 +28,9 @@ class DynamoDBSessionDict:
     Provides interface compatible with Starlette's session dict
     """
 
-    def __init__(self, session_id: str, session_store, initial_data: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, session_id: str, session_store, initial_data: Optional[Dict[str, Any]] = None
+    ):
         self.session_id = session_id
         self.session_store = session_store
         self._data = initial_data or {}
@@ -110,7 +112,9 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
     Compatible with Starlette's session interface
     """
 
-    def __init__(self, app, session_cookie: str = SESSION_COOKIE_NAME, max_age: int = SESSION_MAX_AGE):
+    def __init__(
+        self, app, session_cookie: str = SESSION_COOKIE_NAME, max_age: int = SESSION_MAX_AGE
+    ):
         super().__init__(app)
         self.session_cookie = session_cookie
         self.max_age = max_age
@@ -196,7 +200,7 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
             f"{self.session_cookie}={session_id}",
             "Path=/",
             f"Max-Age={self.max_age}",
-            "SameSite=Lax"
+            "SameSite=Lax",
         ]
 
         if not settings.is_local:
@@ -232,7 +236,7 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
             f"{self.session_cookie}=",
             "Path=/",
             "Max-Age=0",
-            "SameSite=Lax"
+            "SameSite=Lax",
         ]
 
         if not settings.is_local:
@@ -253,4 +257,3 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
         headers.append("Set-Cookie", cookie_value)
         response.headers = headers
         return response
-

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Literal
+from typing import Dict, List, Literal, Optional
 
 from .base_game import BaseGameEngine
 from .chess_engine import ChessEngine
@@ -15,7 +15,9 @@ from .word_association_engine import WordAssociationEngine
 logger = logging.getLogger(__name__)
 
 Side = Literal["white", "black"]
-GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"]
+GameType = Literal[
+    "chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"
+]
 
 
 @dataclass
@@ -82,7 +84,11 @@ class GameManager:
         game_id = uuid.uuid4().hex
         engine = self._create_engine(game_type, initial_state)
 
-        turn = engine.get_turn() if hasattr(engine, "get_turn") else ("white" if game_type == "chess" else "white")
+        turn = (
+            engine.get_turn()
+            if hasattr(engine, "get_turn")
+            else ("white" if game_type == "chess" else "white")
+        )
 
         state = GameState(
             game_id=game_id,

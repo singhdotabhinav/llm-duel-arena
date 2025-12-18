@@ -3,8 +3,9 @@ Shared authentication utilities
 Provides get_current_user function used across routers
 """
 
+from typing import Any, Dict, Optional
+
 from fastapi import Request
-from typing import Optional, Dict, Any
 
 
 def get_current_user(request: Request) -> Optional[Dict[str, Any]]:

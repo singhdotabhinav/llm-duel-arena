@@ -229,16 +229,28 @@ class InMemorySessionStore:
 
 
 # Global session store instance
-# Use DynamoDB in AWS, in-memory for local development
+# Use DynamoDB when enabled, in-memory for local development fallback
 def get_session_store():
     """
-    Get the appropriate session store based on deployment mode
+    Get the appropriate session store based on configuration
     """
-    if settings.use_dynamodb_sessions and not settings.is_local:
-        return DynamoDBSessionStore()
+    if settings.use_dynamodb_sessions:
+        try:
+            return DynamoDBSessionStore()
+        except Exception as e:
+            logger.warning(f"Failed to initialize DynamoDB session store: {e}. Falling back to in-memory store.")
+            return InMemorySessionStore()
     else:
         return InMemorySessionStore()
 
 
-# Singleton instance
-session_store = get_session_store()
+# Singleton instance (lazy initialization)
+_session_store_instance = None
+
+
+def get_session_store_instance():
+    """Get or create singleton session store instance"""
+    global _session_store_instance
+    if _session_store_instance is None:
+        _session_store_instance = get_session_store()
+    return _session_store_instance

@@ -8,8 +8,10 @@ from .core.config import settings
 from .core.logging import configure_logging
 from .routers import games
 from .middleware.security import setup_cors, setup_rate_limiting, add_security_headers, error_handler_middleware
+import logging
 
 configure_logging()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name, debug=settings.debug if settings.is_local else False)  # Disable debug in production
 
@@ -28,19 +30,31 @@ if settings.enable_rate_limiting:
     setup_rate_limiting(app)
 
 # 5. Session middleware (must be after rate limiting, before routers)
-# Configure session cookies based on deployment mode
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.secret_key,
-    session_cookie="session",
-    max_age=3600,  # 1 hour (increased for OAuth flow)
-    same_site="lax",
-    https_only=(not settings.is_local),  # True in production, False in local development
-    path="/",
-    # CRITICAL: Don't set domain parameter at all
-    # Starlette will automatically set domain=None which allows cookie for localhost
-    # Explicitly setting domain=None might cause issues, so we omit it
-)
+# Use DynamoDB session storage if enabled, otherwise use cookie-based sessions
+if settings.use_dynamodb_sessions:
+    from .middleware.dynamodb_session import DynamoDBSessionMiddleware
+    
+    app.add_middleware(
+        DynamoDBSessionMiddleware,
+        session_cookie="session_id",
+        max_age=3600,  # 1 hour
+    )
+    logger.info("Using DynamoDB session storage")
+else:
+    # Default: Cookie-based session storage (for local development)
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.secret_key,
+        session_cookie="session",
+        max_age=3600,  # 1 hour (increased for OAuth flow)
+        same_site="lax",
+        https_only=(not settings.is_local),  # True in production, False in local development
+        path="/",
+        # CRITICAL: Don't set domain parameter at all
+        # Starlette will automatically set domain=None which allows cookie for localhost
+        # Explicitly setting domain=None might cause issues, so we omit it
+    )
+    logger.info("Using cookie-based session storage")
 
 
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")

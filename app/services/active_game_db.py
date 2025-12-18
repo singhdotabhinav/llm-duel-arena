@@ -38,8 +38,7 @@ class ActiveGameService:
 
         try:
             logger.debug(
-                f"[ActiveGameService] Saving state: game_id={state.game_id}, "
-                f"turn={state.turn}, moves={len(state.moves)}"
+                f"[ActiveGameService] Saving state: game_id={state.game_id}, " f"turn={state.turn}, moves={len(state.moves)}"
             )
             # Serialize GameState to dict
             item = {

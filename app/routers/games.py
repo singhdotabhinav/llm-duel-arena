@@ -110,9 +110,7 @@ async def get_my_games(request: Request):
 
     # Use email from user object (email is the DynamoDB key)
     user_email = (
-        user.email
-        if hasattr(user, "email") and user.email
-        else (user.get("email") if isinstance(user, dict) else None)
+        user.email if hasattr(user, "email") and user.email else (user.get("email") if isinstance(user, dict) else None)
     )
     if not user_email:
         logger.warning(f"get_my_games: User email not found. User object: {user}")
@@ -215,9 +213,7 @@ async def create_game(req: CreateGameRequest, request: Request):
     # Get user before creating game so we can store user_id (use email as key)
     user = get_current_user(request)
     user_email = user.email if user and hasattr(user, "email") and user.email else None
-    state = game_manager.create_game(
-        game_type, req.white_model, req.black_model, initial_state, user_id=user_email
-    )
+    state = game_manager.create_game(game_type, req.white_model, req.black_model, initial_state, user_id=user_email)
 
     # Note: Game will be saved to user's history when it completes (in match_runner)
 
@@ -229,10 +225,7 @@ async def get_state(game_id: str):
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
-    logger.debug(
-        f"[API] Returning state for {game_id}: "
-        f"White={state.white_tokens}, Black={state.black_tokens}"
-    )
+    logger.debug(f"[API] Returning state for {game_id}: " f"White={state.white_tokens}, Black={state.black_tokens}")
     return _to_schema(state)
 
 

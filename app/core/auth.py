@@ -40,12 +40,7 @@ def get_current_user_obj(request: Request):
 
     class UserObj:
         def __init__(self, data):
-            self.id = (
-                data.get("sub")
-                or data.get("id")
-                or data.get("user_id")
-                or data.get("email")
-            )
+            self.id = data.get("sub") or data.get("id") or data.get("user_id") or data.get("email")
             self.email = data.get("email")
             self.name = data.get("name")
             self.picture = data.get("picture", "")

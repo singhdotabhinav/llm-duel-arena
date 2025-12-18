@@ -15,9 +15,7 @@ from .word_association_engine import WordAssociationEngine
 logger = logging.getLogger(__name__)
 
 Side = Literal["white", "black"]
-GameType = Literal[
-    "chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"
-]
+GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"]
 
 
 @dataclass
@@ -84,11 +82,7 @@ class GameManager:
         game_id = uuid.uuid4().hex
         engine = self._create_engine(game_type, initial_state)
 
-        turn = (
-            engine.get_turn()
-            if hasattr(engine, "get_turn")
-            else ("white" if game_type == "chess" else "white")
-        )
+        turn = engine.get_turn() if hasattr(engine, "get_turn") else ("white" if game_type == "chess" else "white")
 
         state = GameState(
             game_id=game_id,
@@ -201,21 +195,15 @@ class GameManager:
         # Update total token counts
         if side == "white":
             state.white_tokens += tokens_used
-            logger.debug(
-                f"[GameManager] Updated White Tokens: {state.white_tokens} (added {tokens_used})"
-            )
+            logger.debug(f"[GameManager] Updated White Tokens: {state.white_tokens} (added {tokens_used})")
         else:
             state.black_tokens += tokens_used
-            logger.debug(
-                f"[GameManager] Updated Black Tokens: {state.black_tokens} (added {tokens_used})"
-            )
+            logger.debug(f"[GameManager] Updated Black Tokens: {state.black_tokens} (added {tokens_used})")
 
         # Update state object with new engine state
         state.state = engine.get_state()
         state.turn = engine.get_turn() if hasattr(engine, "get_turn") else state.turn
-        logger.debug(
-            f"[GameManager] After move: state.turn={state.turn}, state.state={state.state}"
-        )
+        logger.debug(f"[GameManager] After move: state.turn={state.turn}, state.state={state.state}")
         state.over = engine.is_game_over()
         state.result = engine.result()
 

@@ -28,9 +28,7 @@ class DynamoDBSessionDict:
     Provides interface compatible with Starlette's session dict
     """
 
-    def __init__(
-        self, session_id: str, session_store, initial_data: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, session_id: str, session_store, initial_data: Optional[Dict[str, Any]] = None):
         self.session_id = session_id
         self.session_store = session_store
         self._data = initial_data or {}
@@ -112,16 +110,12 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
     Compatible with Starlette's session interface
     """
 
-    def __init__(
-        self, app, session_cookie: str = SESSION_COOKIE_NAME, max_age: int = SESSION_MAX_AGE
-    ):
+    def __init__(self, app, session_cookie: str = SESSION_COOKIE_NAME, max_age: int = SESSION_MAX_AGE):
         super().__init__(app)
         self.session_cookie = session_cookie
         self.max_age = max_age
         self.session_store = get_session_store_instance()
-        logger.info(
-            f"DynamoDB Session Middleware initialized (cookie: {session_cookie}, max_age: {max_age}s)"
-        )
+        logger.info(f"DynamoDB Session Middleware initialized (cookie: {session_cookie}, max_age: {max_age}s)")
 
     async def dispatch(self, request: Request, call_next):
         # Get session_id from cookie
@@ -133,9 +127,7 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
             session_data = self.session_store.get_session(session_id)
             if session_data is None:
                 # Session expired or not found, create new one
-                logger.debug(
-                    f"Session {session_id[:8]}... not found or expired, creating new session"
-                )
+                logger.debug(f"Session {session_id[:8]}... not found or expired, creating new session")
                 session_id = None
 
         # Create session dict-like object
@@ -213,9 +205,7 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
         if "Set-Cookie" in headers:
             # Remove existing Set-Cookie for this cookie name
             existing_cookies = headers.get_list("Set-Cookie")
-            filtered = [
-                c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")
-            ]
+            filtered = [c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")]
             headers.pop("Set-Cookie", None)
             for cookie in filtered:
                 headers.append("Set-Cookie", cookie)
@@ -247,9 +237,7 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
         # Set cookie header to delete
         if "Set-Cookie" in headers:
             existing_cookies = headers.get_list("Set-Cookie")
-            filtered = [
-                c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")
-            ]
+            filtered = [c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")]
             headers.pop("Set-Cookie", None)
             for cookie in filtered:
                 headers.append("Set-Cookie", cookie)

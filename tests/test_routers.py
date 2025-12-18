@@ -32,3 +32,6 @@ def test_auth_endpoints_exist(client):
     assert response.status_code != 404
 
 
+
+
+

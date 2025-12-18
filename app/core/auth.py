@@ -45,3 +45,6 @@ def get_current_user_obj(request: Request):
             self.picture = data.get("picture", "")
 
     return UserObj(user_data)
+
+
+

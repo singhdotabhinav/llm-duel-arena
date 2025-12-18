@@ -76,10 +76,13 @@ async def list_games():
                     "game_type": item.get("game_type", "unknown"),
                     "white_model": item.get("white_model") or "Unknown",
                     "black_model": item.get("black_model") or "Unknown",
+                    "user_id": item.get("user_id"),  # User who created/owns the game
                     "moves_count": len(item.get("moves", [])),
                     "over": item.get("over", False),
                     "result": item.get("result", {}),
                     "turn": item.get("turn", "white"),
+                    "white_tokens": item.get("white_tokens", 0),
+                    "black_tokens": item.get("black_tokens", 0),
                 }
             )
     except Exception as e:
@@ -96,8 +99,12 @@ async def list_games():
 @router.get("/my-games")
 async def get_my_games(request: Request):
     """Get games for the logged-in user from DynamoDB"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     user = get_current_user(request)
     if not user:
+        logger.warning("get_my_games: User not authenticated")
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Fetch from DynamoDB
@@ -108,8 +115,20 @@ async def get_my_games(request: Request):
         user.email if hasattr(user, "email") and user.email else (user.get("email") if isinstance(user, dict) else None)
     )
     if not user_email:
+        logger.warning(f"get_my_games: User email not found. User object: {user}")
         raise HTTPException(status_code=400, detail="User email not found")
+    
+    logger.info(f"get_my_games: Fetching games for user: {user_email}")
+    logger.info(f"get_my_games: Using table: {dynamodb_service.table_name}")
+    
     user_data = dynamodb_service.get_user(user_email)
+    
+    if not user_data:
+        logger.warning(f"get_my_games: No user data found for {user_email}")
+        return {"games": []}
+
+    logger.info(f"get_my_games: User data found. Keys: {list(user_data.keys())}")
+    logger.info(f"get_my_games: game_list exists: {'game_list' in user_data}")
 
     games_list = []
     if user_data and "game_list" in user_data:
@@ -123,20 +142,26 @@ async def get_my_games(request: Request):
             # based on the previous SQL implementation:
             # "result": {"result": game.result, "winner": game.winner}
 
-            # In DynamoDB we stored "result" as the winner model name.
-            # Let's reconstruct a compatible structure.
-            result_str = game_info.get("result", "Unknown")
+            # Get result - prefer full dict if available, otherwise reconstruct from string
+            result_dict = game_info.get("result_dict")
+            if result_dict:
+                # Use the stored result dict directly
+                result = result_dict
+            else:
+                # Fallback: reconstruct from string result (backward compatibility)
+                result_str = game_info.get("result", "Unknown")
+                result = {"result": result_str, "winner": result_str}
 
             games_list.append(
                 {
                     "game_id": game_id,
-                    "game_type": game_info.get("game", "unknown"),
-                    "white_model": game_info.get("p1", "Unknown"),
-                    "black_model": game_info.get("p2", "Unknown"),
-                    "moves_count": 0,  # Not stored in simple DynamoDB schema
+                    "game_type": game_info.get("game_type") or game_info.get("game", "unknown"),
+                    "white_model": game_info.get("white_model") or game_info.get("p1", "Unknown"),
+                    "black_model": game_info.get("black_model") or game_info.get("p2", "Unknown"),
+                    "moves_count": game_info.get("total_moves", 0),
                     "over": True,  # All games in history are over
-                    "result": {"result": result_str, "winner": result_str},
-                    "created_at": None,  # Not stored in simple DynamoDB schema
+                    "result": result,
+                    "created_at": game_info.get("completed_at"),
                 }
             )
 
@@ -204,8 +229,9 @@ async def get_state(game_id: str):
     state = game_manager.get_state(game_id)
     if not state:
         raise HTTPException(status_code=404, detail="Game not found")
-    print(
-        f"[API] Returning state for {game_id}: " f"White={state.white_tokens}, Black={state.black_tokens}",
+    logger.debug(
+        f"[API] Returning state for {game_id}: "
+        f"White={state.white_tokens}, Black={state.black_tokens}"
     )
     return _to_schema(state)
 

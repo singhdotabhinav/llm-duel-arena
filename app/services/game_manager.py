@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import uuid
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Literal
 
 from .base_game import BaseGameEngine
+
+logger = logging.getLogger(__name__)
 from .chess_engine import ChessEngine
 from .tic_tac_toe_engine import TicTacToeEngine
 from .rps_engine import RPSEngine
@@ -127,7 +130,7 @@ class GameManager:
         # Let's assume get_state() returns full JSON for complex games.
 
         side: Side = engine.get_turn() if hasattr(engine, "get_turn") else state.turn
-        print(f"[GameManager] Before move: side={side}, state.turn={state.turn}")
+        logger.debug(f"[GameManager] Before move: side={side}, state.turn={state.turn}")
 
         from_square = None
         to_square = None
@@ -187,15 +190,21 @@ class GameManager:
         # Update total token counts
         if side == "white":
             state.white_tokens += tokens_used
-            print(f"[GameManager] Updated White Tokens: {state.white_tokens} (added {tokens_used})")
+            logger.debug(
+                f"[GameManager] Updated White Tokens: {state.white_tokens} (added {tokens_used})"
+            )
         else:
             state.black_tokens += tokens_used
-            print(f"[GameManager] Updated Black Tokens: {state.black_tokens} (added {tokens_used})")
+            logger.debug(
+                f"[GameManager] Updated Black Tokens: {state.black_tokens} (added {tokens_used})"
+            )
 
         # Update state object with new engine state
         state.state = engine.get_state()
         state.turn = engine.get_turn() if hasattr(engine, "get_turn") else state.turn
-        print(f"[GameManager] After move: state.turn={state.turn}, state.state={state.state}")
+        logger.debug(
+            f"[GameManager] After move: state.turn={state.turn}, state.state={state.state}"
+        )
         state.over = engine.is_game_over()
         state.result = engine.result()
 

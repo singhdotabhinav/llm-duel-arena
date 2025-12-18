@@ -42,14 +42,20 @@ class DynamoDBService:
     def get_user(self, email: str) -> Optional[Dict[str, Any]]:
         """Retrieve user data by email"""
         if not self.table:
-            logger.warning("DynamoDB table not initialized")
+            logger.warning(f"DynamoDB table not initialized. Table name: {self.table_name}")
             return None
 
         try:
+            logger.info(f"Getting user from table '{self.table_name}' with email: {email}")
             response = self.table.get_item(Key={"email": email})
-            return response.get("Item")
+            item = response.get("Item")
+            if item:
+                logger.info(f"User found. Keys in user data: {list(item.keys())}")
+            else:
+                logger.warning(f"User not found in table '{self.table_name}' for email: {email}")
+            return item
         except ClientError as e:
-            logger.error(f"Error getting user {email}: {e}")
+            logger.error(f"Error getting user {email} from table '{self.table_name}': {e}")
             return None
 
     def update_user_login(self, email: str) -> bool:

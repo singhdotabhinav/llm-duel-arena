@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -10,6 +11,8 @@ import chess
 from .game_manager import game_manager
 from ..models.base import get_adapter
 from ..core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class MatchRunner:
@@ -134,7 +137,7 @@ class MatchRunner:
             else:
                 tokens_this_move = 50
 
-        print(f"[MatchRunner] Move: {move}, Tokens: {tokens_this_move}")
+        logger.debug(f"[MatchRunner] Move: {move}, Tokens: {tokens_this_move}")
 
         if move:
             # Apply move

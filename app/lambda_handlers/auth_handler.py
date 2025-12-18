@@ -6,9 +6,13 @@ Handles Google OAuth login, callback, and user management
 import json
 import os
 import secrets
+import logging
 import boto3
 from typing import Dict, Any
 from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Initialize services
 from services.dynamodb_service import save_user, get_user_by_email
@@ -28,7 +32,7 @@ def get_oauth_credentials() -> Dict[str, str]:
         secret = json.loads(response["SecretString"])
         return {"client_id": secret.get("client_id", ""), "client_secret": secret.get("client_secret", "")}
     except Exception as e:
-        print(f"Error getting OAuth credentials: {e}")
+        logger.debug(f"Error getting OAuth credentials: {e}")
         return {}
 
 

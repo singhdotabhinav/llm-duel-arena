@@ -6,7 +6,11 @@ Converts FastAPI routes to Lambda functions
 import json
 import os
 import time
+import logging
 from typing import Dict, Any
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Import your existing game logic
 import sys
@@ -89,7 +93,7 @@ def create_game(body: Dict, query_params: Dict) -> Dict[str, Any]:
             ),
         }
     except Exception as e:
-        print(f"Error creating game: {e}")
+        logger.debug(f"Error creating game: {e}")
         return error_response(str(e))
 
 

@@ -33,7 +33,7 @@ if settings.enable_rate_limiting:
 # Use DynamoDB session storage if enabled, otherwise use cookie-based sessions
 if settings.use_dynamodb_sessions:
     from .middleware.dynamodb_session import DynamoDBSessionMiddleware
-    
+
     app.add_middleware(
         DynamoDBSessionMiddleware,
         session_cookie="session_id",

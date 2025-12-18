@@ -29,3 +29,6 @@ def test_allowed_redirect_uris():
     assert len(settings.allowed_redirect_uris) > 0
 
 
+
+
+

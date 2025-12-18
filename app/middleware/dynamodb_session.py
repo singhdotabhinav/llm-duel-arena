@@ -114,7 +114,9 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
         self.session_cookie = session_cookie
         self.max_age = max_age
         self.session_store = get_session_store_instance()
-        logger.info(f"DynamoDB Session Middleware initialized (cookie: {session_cookie}, max_age: {max_age}s)")
+        logger.info(
+            f"DynamoDB Session Middleware initialized (cookie: {session_cookie}, max_age: {max_age}s)"
+        )
 
     async def dispatch(self, request: Request, call_next):
         # Get session_id from cookie
@@ -126,7 +128,9 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
             session_data = self.session_store.get_session(session_id)
             if session_data is None:
                 # Session expired or not found, create new one
-                logger.debug(f"Session {session_id[:8]}... not found or expired, creating new session")
+                logger.debug(
+                    f"Session {session_id[:8]}... not found or expired, creating new session"
+                )
                 session_id = None
 
         # Create session dict-like object
@@ -181,7 +185,10 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
     def _set_session_cookie(self, response: Response, session_id: str) -> Response:
         """Set session cookie in response"""
         # Ensure headers are mutable
-        headers = MutableHeaders(response.headers) if not isinstance(response.headers, MutableHeaders) else response.headers
+        if not isinstance(response.headers, MutableHeaders):
+            headers = MutableHeaders(response.headers)
+        else:
+            headers = response.headers
 
         # Build cookie string
         cookie_parts = [
@@ -190,29 +197,34 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
             f"Max-Age={self.max_age}",
             "SameSite=Lax"
         ]
-        
+
         if not settings.is_local:
             # HTTPS only in production
             cookie_parts.append("Secure")
-        
+
         cookie_value = "; ".join(cookie_parts)
-        
+
         # Set cookie header (replace existing if present)
         if "Set-Cookie" in headers:
             # Remove existing Set-Cookie for this cookie name
             existing_cookies = headers.get_list("Set-Cookie")
-            filtered = [c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")]
+            filtered = [
+                c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")
+            ]
             headers.pop("Set-Cookie", None)
             for cookie in filtered:
                 headers.append("Set-Cookie", cookie)
-        
+
         headers.append("Set-Cookie", cookie_value)
         response.headers = headers
         return response
 
     def _delete_session_cookie(self, response: Response) -> Response:
         """Delete session cookie"""
-        headers = MutableHeaders(response.headers) if not isinstance(response.headers, MutableHeaders) else response.headers
+        if not isinstance(response.headers, MutableHeaders):
+            headers = MutableHeaders(response.headers)
+        else:
+            headers = response.headers
 
         # Build delete cookie string
         cookie_parts = [
@@ -221,20 +233,22 @@ class DynamoDBSessionMiddleware(BaseHTTPMiddleware):
             "Max-Age=0",
             "SameSite=Lax"
         ]
-        
+
         if not settings.is_local:
             cookie_parts.append("Secure")
-        
+
         cookie_value = "; ".join(cookie_parts)
-        
+
         # Set cookie header to delete
         if "Set-Cookie" in headers:
             existing_cookies = headers.get_list("Set-Cookie")
-            filtered = [c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")]
+            filtered = [
+                c for c in existing_cookies if not c.startswith(f"{self.session_cookie}=")
+            ]
             headers.pop("Set-Cookie", None)
             for cookie in filtered:
                 headers.append("Set-Cookie", cookie)
-        
+
         headers.append("Set-Cookie", cookie_value)
         response.headers = headers
         return response

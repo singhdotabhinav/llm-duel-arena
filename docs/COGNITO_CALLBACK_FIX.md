@@ -108,3 +108,6 @@ https://us-east-17fscspsue.auth.us-east-1.amazoncognito.com/login?client_id=2v96
 
 If this works, Cognito is configured correctly!
 
+
+
+

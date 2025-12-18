@@ -35,7 +35,10 @@ class ActiveGameService:
             return False
 
         try:
-            print(f"[ActiveGameService] Saving state: game_id={state.game_id}, turn={state.turn}, moves={len(state.moves)}")
+            logger.debug(
+                f"[ActiveGameService] Saving state: game_id={state.game_id}, "
+                f"turn={state.turn}, moves={len(state.moves)}"
+            )
             # Serialize GameState to dict
             item = {
                 "game_id": state.game_id,
@@ -86,8 +89,9 @@ class ActiveGameService:
             if not item:
                 return None
 
-            print(
-                f"[ActiveGameService] Loading state: game_id={game_id}, turn={item.get('turn')}, moves={len(item.get('moves', []))}"
+            logger.debug(
+                f"[ActiveGameService] Loading state: game_id={game_id}, "
+                f"turn={item.get('turn')}, moves={len(item.get('moves', []))}"
             )
 
             # Deserialize to GameState

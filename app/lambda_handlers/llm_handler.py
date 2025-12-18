@@ -5,8 +5,12 @@ Handles LLM API calls (OpenAI, Anthropic, Ollama)
 
 import json
 import os
+import logging
 import boto3
 from typing import Dict, Any, Optional, Tuple
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Secrets Manager for API keys
 secrets_client = boto3.client("secretsmanager", region_name=os.getenv("AWS_REGION", "us-east-1"))
@@ -23,7 +27,7 @@ def get_openai_api_key() -> Optional[str]:
         secret = json.loads(response["SecretString"])
         return secret.get("api_key")
     except Exception as e:
-        print(f"Error getting OpenAI API key: {e}")
+        logger.debug(f"Error getting OpenAI API key: {e}")
         return None
 
 

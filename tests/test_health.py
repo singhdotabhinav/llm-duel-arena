@@ -34,3 +34,6 @@ def test_static_files(client):
     assert response.status_code in [200, 404]
 
 
+
+
+

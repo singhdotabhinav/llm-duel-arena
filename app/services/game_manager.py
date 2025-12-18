@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import uuid
 import logging
+import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Literal
 
 from .base_game import BaseGameEngine
+from .chess_engine import ChessEngine
+from .racing_engine import RacingEngine
+from .rps_engine import RPSEngine
+from .tic_tac_toe_engine import TicTacToeEngine
+from .word_association_engine import WordAssociationEngine
 
 logger = logging.getLogger(__name__)
-from .chess_engine import ChessEngine
-from .tic_tac_toe_engine import TicTacToeEngine
-from .rps_engine import RPSEngine
-from .racing_engine import RacingEngine
-from .word_association_engine import WordAssociationEngine
 
 Side = Literal["white", "black"]
 GameType = Literal["chess", "tic_tac_toe", "rock_paper_scissors", "racing", "word_association_clash"]
@@ -113,7 +113,12 @@ class GameManager:
         return state
 
     def push_move(
-        self, game_id: str, move_str: str, model_name: Optional[str] = None, error: Optional[str] = None, tokens_used: int = 0
+        self,
+        game_id: str,
+        move_str: str,
+        model_name: Optional[str] = None,
+        error: Optional[str] = None,
+        tokens_used: int = 0,
     ) -> Optional[GameState]:
         # Load state
         state = self.db.load_state(game_id)

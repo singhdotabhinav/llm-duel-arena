@@ -3,16 +3,17 @@ DynamoDB Session Middleware for FastAPI/Starlette
 Replaces cookie-based session storage with DynamoDB-backed sessions
 """
 
-import time
 import logging
-from typing import Dict, Any, Optional
+import time
+from typing import Any, Dict, Optional
+
+from starlette.datastructures import MutableHeaders
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.datastructures import MutableHeaders
 
-from ..services.session_store import get_session_store_instance
 from ..core.config import settings
+from ..services.session_store import get_session_store_instance
 
 logger = logging.getLogger(__name__)
 

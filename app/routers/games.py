@@ -113,12 +113,12 @@ async def get_my_games(request: Request):
     if not user_email:
         logger.warning(f"get_my_games: User email not found. User object: {user}")
         raise HTTPException(status_code=400, detail="User email not found")
-    
+
     logger.info(f"get_my_games: Fetching games for user: {user_email}")
     logger.info(f"get_my_games: Using table: {dynamodb_service.table_name}")
-    
+
     user_data = dynamodb_service.get_user(user_email)
-    
+
     if not user_data:
         logger.warning(f"get_my_games: No user data found for {user_email}")
         return {"games": []}

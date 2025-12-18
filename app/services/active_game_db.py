@@ -1,8 +1,10 @@
-import boto3
 import json
 import logging
-from typing import Optional, Dict, Any
+from typing import Dict, Any, Optional
+
+import boto3
 from botocore.exceptions import ClientError
+
 from ..core.config import settings
 from .game_manager import GameState, MoveRecord
 

@@ -1,12 +1,12 @@
 """Service to save games to DynamoDB"""
 
-from typing import List, Optional
-from datetime import datetime
-import logging
-
-from app.services.game_manager import GameState
-from app.services.dynamodb_service import dynamodb_service
 import json
+import logging
+from datetime import datetime
+from typing import List, Optional
+
+from app.services.dynamodb_service import dynamodb_service
+from app.services.game_manager import GameState
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,10 @@ def save_game_to_db(game_state: GameState, user_id: str = None):
     # user_id should be the email address (used as DynamoDB key)
     email = user_id or game_state.user_id
     if not email:
-        logger.warning(f"Game {game_state.game_id} completed but no user_id - skipping user history save. user_id param: {user_id}, game_state.user_id: {game_state.user_id}")
+        logger.warning(
+            f"Game {game_state.game_id} completed but no user_id - skipping user history save. "
+            f"user_id param: {user_id}, game_state.user_id: {game_state.user_id}"
+        )
         return
 
     logger.info(f"Saving game {game_state.game_id} to user history: {email}")

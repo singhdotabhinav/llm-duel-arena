@@ -6,20 +6,14 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .core.config import settings
 from .core.logging import configure_logging
-from .routers import games, auth
-from .middleware.security import (
-    setup_cors,
-    setup_rate_limiting,
-    add_security_headers,
-    error_handler_middleware
-)
+from .routers import games
+from .middleware.security import setup_cors, setup_rate_limiting, add_security_headers, error_handler_middleware
+import logging
 
 configure_logging()
+logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title=settings.app_name,
-    debug=settings.debug if settings.is_local else False  # Disable debug in production
-)
+app = FastAPI(title=settings.app_name, debug=settings.debug if settings.is_local else False)  # Disable debug in production
 
 # IMPORTANT: Middleware order matters! Add in reverse order of execution
 # 1. Error handler (outermost - catches all errors)
@@ -36,19 +30,31 @@ if settings.enable_rate_limiting:
     setup_rate_limiting(app)
 
 # 5. Session middleware (must be after rate limiting, before routers)
-# Configure session cookies based on deployment mode
-app.add_middleware(
-    SessionMiddleware, 
-    secret_key=settings.secret_key,
-    session_cookie="session",
-    max_age=3600,  # 1 hour (increased for OAuth flow)
-    same_site="lax",
-    https_only=(not settings.is_local),  # True in production, False in local development
-    path="/",
-    # CRITICAL: Don't set domain parameter at all
-    # Starlette will automatically set domain=None which allows cookie for localhost
-    # Explicitly setting domain=None might cause issues, so we omit it
-)
+# Use DynamoDB session storage if enabled, otherwise use cookie-based sessions
+if settings.use_dynamodb_sessions:
+    from .middleware.dynamodb_session import DynamoDBSessionMiddleware
+
+    app.add_middleware(
+        DynamoDBSessionMiddleware,
+        session_cookie="session_id",
+        max_age=3600,  # 1 hour
+    )
+    logger.info("Using DynamoDB session storage")
+else:
+    # Default: Cookie-based session storage (for local development)
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.secret_key,
+        session_cookie="session",
+        max_age=3600,  # 1 hour (increased for OAuth flow)
+        same_site="lax",
+        https_only=(not settings.is_local),  # True in production, False in local development
+        path="/",
+        # CRITICAL: Don't set domain parameter at all
+        # Starlette will automatically set domain=None which allows cookie for localhost
+        # Explicitly setting domain=None might cause issues, so we omit it
+    )
+    logger.info("Using cookie-based session storage")
 
 
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
@@ -56,17 +62,19 @@ templates = Jinja2Templates(directory=str(settings.templates_dir))
 
 app.include_router(games.router, prefix="/api/games", tags=["games"])
 
-# Use Cognito auth if enabled, otherwise use Google OAuth
+# Use Cognito for authentication
 if settings.use_cognito:
-    # Use OIDC-based Cognito auth (using authlib, similar to the Flask example code)
+    # Use OIDC-based Cognito auth (using authlib)
     from .routers import cognito_oidc_auth
+
     app.include_router(cognito_oidc_auth.router, prefix="/auth", tags=["auth"])
-    
+
     # Also include the programmatic auth endpoints (signup/login forms) for direct API access
     from .routers import cognito_auth
+
     app.include_router(cognito_auth.router, prefix="/api/auth", tags=["auth-api"])
 else:
-    app.include_router(auth.router, prefix="/auth", tags=["auth"])
+    raise RuntimeError("Cognito authentication is required. Set USE_COGNITO=true in your environment variables.")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -87,7 +95,7 @@ async def landing(request: Request):
 async def game(request: Request, game_id: str = None):
     # Determine which template to serve based on game type
     template_name = "index.html"
-    
+
     game_type_param = request.query_params.get("game_type") if not game_id else None
     if game_type_param == "racing":
         template_name = "racing.html"
@@ -97,12 +105,13 @@ async def game(request: Request, game_id: str = None):
     if game_id:
         # Fetch game state to determine game type
         from .services.game_manager import game_manager
+
         state = game_manager.get_state(game_id)
         if state and state.game_type == "racing":
             template_name = "racing.html"
         elif state and state.game_type == "word_association_clash":
             template_name = "word_association.html"
-    
+
     return templates.TemplateResponse(
         template_name,
         {
@@ -169,5 +178,3 @@ async def signup_page(request: Request):
             "app_name": settings.app_name,
         },
     )
-
-

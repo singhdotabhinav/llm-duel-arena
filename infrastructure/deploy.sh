@@ -62,19 +62,26 @@ terraform init
 echo "📋 Planning deployment..."
 terraform plan $VAR_FILE_ARG
 
-read -p "Continue with deployment? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  echo "🚀 Applying Terraform..."
+# Skip manual prompt if running in CI/CD or AUTO_APPROVE is set
+if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$AUTO_APPROVE" == "true" ]; then
+  echo "🤖 Running in automated mode - auto-approving..."
   terraform apply $VAR_FILE_ARG -auto-approve
-
-  echo "✅ Deployment complete!"
-  echo ""
-  echo "📊 Outputs:"
-  terraform output
 else
-  echo "❌ Deployment cancelled"
+  read -p "Continue with deployment? (y/n) " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🚀 Applying Terraform..."
+    terraform apply $VAR_FILE_ARG -auto-approve
+  else
+    echo "❌ Deployment cancelled"
+    exit 1
+  fi
 fi
+
+echo "✅ Deployment complete!"
+echo ""
+echo "📊 Outputs:"
+terraform output
 
 
 

@@ -44,21 +44,21 @@ resource "aws_dynamodb_table" "games" {
 resource "aws_dynamodb_table" "users" {
   name         = "${var.project_name}-users-${var.environment}"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "user_id"
-
-  attribute {
-    name = "user_id"
-    type = "S"
-  }
+  hash_key     = "email"
 
   attribute {
     name = "email"
     type = "S"
   }
 
+  attribute {
+    name = "user_id"
+    type = "S"
+  }
+
   global_secondary_index {
-    name            = "email-index"
-    hash_key        = "email"
+    name            = "user-id-index"
+    hash_key        = "user_id"
     projection_type = "ALL"
   }
 

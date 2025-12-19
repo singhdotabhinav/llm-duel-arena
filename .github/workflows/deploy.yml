@@ -1,11 +1,18 @@
 name: Deploy to AWS Lambda
 
+# DISABLED: This workflow is redundant - ci-cd.yml already handles all deployments
+# Keeping file for reference but disabling automatic triggers
+# To re-enable, uncomment the 'on:' section below
+
+# on:
+#   push:
+#     branches:
+#       - main
+#       - feature/deployment-stage
+#   workflow_dispatch:
+
 on:
-  push:
-    branches:
-      - main
-      - feature/deployment-stage
-  workflow_dispatch:
+  workflow_dispatch:  # Only allow manual trigger
 
 env:
   AWS_REGION: us-east-1

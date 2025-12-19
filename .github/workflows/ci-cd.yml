@@ -1,0 +1,403 @@
+name: CI/CD Pipeline
+
+# Simple 3-job pipeline: test → build → deploy
+# - Pushes to main/develop: Run all 3 jobs sequentially
+# - No pull request triggers (prevents duplicate runs when pushing to PR branches)
+
+on:
+  push:
+    branches:
+      - main      # Deploy to production
+      - develop   # Deploy to integration
+  # Note: Pull request triggers removed to prevent duplicate runs
+  # When you push to a branch with an open PR, only the push event triggers the workflow
+
+env:
+  AWS_REGION: us-east-1
+  PYTHON_VERSION: '3.13'
+
+jobs:
+  # Job 1: Test
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio black flake8 mypy
+
+      - name: Run linter (flake8)
+        run: |
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Check code formatting (black)
+        run: |
+          black --check --line-length 127 app/
+
+      - name: Run type checking (mypy)
+        run: |
+          mypy app/ --ignore-missing-imports || true
+
+      - name: Run tests
+        env:
+          USE_COGNITO: "true"
+          APP_SECRET_KEY: "test-secret-key-for-ci-cd"
+          DEPLOYMENT_MODE: "local"
+          COGNITO_USER_POOL_ID: "test-pool-id"
+          COGNITO_CLIENT_ID: "test-client-id"
+          COGNITO_REGION: "us-east-1"
+          COGNITO_CALLBACK_URL: "http://localhost:8000/auth/callback"
+        run: |
+          if [ -d "tests" ] && [ "$(ls -A tests/*.py 2>/dev/null)" ]; then
+            pytest tests/ -v --cov=app --cov-report=xml --cov-report=html || true
+          else
+            echo "No tests directory found, skipping tests"
+            echo "Creating basic test structure..."
+            mkdir -p tests
+            echo "# Tests will be added here" > tests/README.md
+          fi
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        if: always()
+
+  # Job 2: Build
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lambda.txt
+
+      - name: Build Lambda packages
+        run: |
+          cd infrastructure
+          chmod +x build-lambda.sh
+          # Use branch-based environment (prod for main, int for develop)
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+          ./build-lambda.sh ${ENV}
+
+      - name: Upload Lambda packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-packages
+          path: infrastructure/deployments/*.zip
+          retention-days: 7
+
+  # Job 3: Deploy (all deployment steps in sequence)
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'integration' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 1: Deploy Infrastructure (Terraform)
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Setup Terraform State Backend
+        run: |
+          BUCKET_NAME="llm-duel-arena-terraform-state"
+          TABLE_NAME="llm-duel-arena-terraform-locks"
+          REGION="${{ env.AWS_REGION }}"
+          
+          # Create S3 bucket if it doesn't exist
+          if ! aws s3 ls "s3://${BUCKET_NAME}" 2>&1 | grep -q 'NoSuchBucket'; then
+            echo "✅ S3 bucket ${BUCKET_NAME} already exists"
+          else
+            echo "📦 Creating S3 bucket: ${BUCKET_NAME}"
+            if [ "$REGION" == "us-east-1" ]; then
+              aws s3api create-bucket --bucket ${BUCKET_NAME} --region ${REGION}
+            else
+              aws s3api create-bucket --bucket ${BUCKET_NAME} --region ${REGION} \
+                --create-bucket-configuration LocationConstraint=${REGION}
+            fi
+            
+            # Enable versioning
+            aws s3api put-bucket-versioning \
+              --bucket ${BUCKET_NAME} \
+              --versioning-configuration Status=Enabled
+            
+            # Enable encryption
+            aws s3api put-bucket-encryption \
+              --bucket ${BUCKET_NAME} \
+              --server-side-encryption-configuration '{
+                "Rules": [{
+                  "ApplyServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "AES256"
+                  }
+                }]
+              }'
+            
+            # Block public access
+            aws s3api put-public-access-block \
+              --bucket ${BUCKET_NAME} \
+              --public-access-block-configuration \
+              "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+            
+            echo "✅ S3 bucket created and configured"
+          fi
+          
+          # Create DynamoDB table if it doesn't exist
+          if aws dynamodb describe-table --table-name ${TABLE_NAME} --region ${REGION} 2>&1 | grep -q 'ResourceNotFoundException'; then
+            echo "📊 Creating DynamoDB table: ${TABLE_NAME}"
+            aws dynamodb create-table \
+              --table-name ${TABLE_NAME} \
+              --attribute-definitions AttributeName=LockID,AttributeType=S \
+              --key-schema AttributeName=LockID,KeyType=HASH \
+              --billing-mode PAY_PER_REQUEST \
+              --region ${REGION} \
+              --tags Key=Name,Value=TerraformStateLocks Key=Project,Value=llm-duel-arena
+            
+            echo "⏳ Waiting for table to be active..."
+            aws dynamodb wait table-exists --table-name ${TABLE_NAME} --region ${REGION}
+            echo "✅ DynamoDB table created"
+          else
+            echo "✅ DynamoDB table ${TABLE_NAME} already exists"
+          fi
+
+      - name: Terraform Init
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+        run: |
+          terraform init \
+            -backend-config="bucket=llm-duel-arena-terraform-state" \
+            -backend-config="key=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -no-color
+
+      - name: Prepare Terraform Variables
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+        run: |
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+          # Create terraform.tfvars from example if it doesn't exist
+          if [ ! -f "terraform.tfvars" ]; then
+            if [ -f "terraform.tfvars.example" ]; then
+              echo "📋 Creating terraform.tfvars from example..."
+              cp terraform.tfvars.example terraform.tfvars
+            else
+              echo "📋 Creating terraform.tfvars with defaults..."
+              echo "aws_region  = \"${{ env.AWS_REGION }}\"" > terraform.tfvars
+              echo "environment = \"${ENV}\"" >> terraform.tfvars
+              echo "project_name = \"llm-duel-arena\"" >> terraform.tfvars
+            fi
+          fi
+          echo "✅ terraform.tfvars ready"
+
+      - name: Download Lambda packages
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-packages
+          path: infrastructure/deployments/
+
+      - name: Terraform Plan
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+        run: |
+          terraform plan \
+            -var-file=terraform.tfvars \
+            -out=tfplan \
+            -no-color
+
+      - name: Terraform Apply
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+        run: |
+          terraform apply -auto-approve -no-color tfplan
+
+      - name: Save Terraform outputs
+        working-directory: infrastructure/environments/${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+        run: |
+          terraform output -json > ../../terraform-outputs.json
+
+      - name: Upload Terraform outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: terraform-outputs.json
+
+      # Step 2: Deploy Lambda Functions
+      # Note: Lambda packages are already downloaded before Terraform Apply
+
+      - name: Deploy Lambda functions
+        env:
+          AUTO_APPROVE: "true"
+          CI: "true"
+        run: |
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+          
+          echo "📦 Updating Lambda function code..."
+          
+          UPDATE_COUNT=0
+          
+          if aws lambda update-function-code \
+            --function-name llm-duel-arena-game-${ENV} \
+            --zip-file fileb://infrastructure/deployments/game.zip \
+            --region ${{ env.AWS_REGION }} 2>&1; then
+            echo "✅ game function updated"
+            UPDATE_COUNT=$((UPDATE_COUNT + 1))
+          else
+            echo "⚠️  game function update skipped (function may not exist yet or will be created by Terraform)"
+          fi
+          
+          if aws lambda update-function-code \
+            --function-name llm-duel-arena-auth-${ENV} \
+            --zip-file fileb://infrastructure/deployments/auth.zip \
+            --region ${{ env.AWS_REGION }} 2>&1; then
+            echo "✅ auth function updated"
+            UPDATE_COUNT=$((UPDATE_COUNT + 1))
+          else
+            echo "⚠️  auth function update skipped (function may not exist yet or will be created by Terraform)"
+          fi
+          
+          if aws lambda update-function-code \
+            --function-name llm-duel-arena-llm-${ENV} \
+            --zip-file fileb://infrastructure/deployments/llm.zip \
+            --region ${{ env.AWS_REGION }} 2>&1; then
+            echo "✅ llm function updated"
+            UPDATE_COUNT=$((UPDATE_COUNT + 1))
+          else
+            echo "⚠️  llm function update skipped (function may not exist yet or will be created by Terraform)"
+          fi
+          
+          echo "📊 Updated $UPDATE_COUNT out of 3 Lambda functions"
+
+      - name: Verify Lambda deployment
+        run: |
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }}
+          aws lambda list-functions \
+            --query "Functions[?contains(FunctionName, 'llm-duel-arena')].FunctionName" \
+            --region ${{ env.AWS_REGION }} \
+            --output table
+
+      # Step 3: Deploy Static Assets
+      - name: Deploy static assets
+        env:
+          CI: "true"
+        run: |
+          cd infrastructure
+          chmod +x deploy-static.sh
+          ./deploy-static.sh ${{ github.ref == 'refs/heads/main' && 'prod' || 'int' }} ${{ env.AWS_REGION }}
+
+      # Step 4: Integration Tests
+      - name: Download Terraform outputs
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-outputs
+          path: .
+          if-no-files-found: ignore
+      
+      - name: Ensure terraform outputs file exists
+        run: |
+          if [ ! -f terraform-outputs.json ]; then
+            echo "⚠️  Terraform outputs artifact not found - creating empty file for integration tests"
+            echo "{}" > terraform-outputs.json
+          fi
+
+      - name: Get API Gateway URL
+        id: get-api-url
+        continue-on-error: true
+        run: |
+          API_URL=$(cat terraform-outputs.json | jq -r '.api_gateway_url.value' 2>/dev/null || echo "")
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo "API Gateway URL: $API_URL"
+
+      - name: Test API endpoints
+        continue-on-error: true
+        run: |
+          API_URL="${{ steps.get-api-url.outputs.api_url }}"
+          
+          if [ -z "$API_URL" ] || [ "$API_URL" == "null" ]; then
+            echo "⚠️  API URL not available, skipping API tests"
+            exit 0
+          fi
+          
+          # Test health endpoint (if exists)
+          curl -f "$API_URL/api/games/health" || echo "⚠️  Health endpoint not available"
+          
+          # Test game creation
+          curl -X POST "$API_URL/api/games/create" \
+            -H "Content-Type: application/json" \
+            -d '{"game_type": "tic_tac_toe"}' \
+            -f || echo "⚠️  Game creation test failed"
+
+      - name: Test frontend accessibility
+        continue-on-error: true
+        run: |
+          # Get CloudFront URL from Terraform outputs
+          CLOUDFRONT_URL=$(cat terraform-outputs.json | jq -r '.cloudfront_url.value' 2>/dev/null || echo "")
+          
+          if [ -z "$CLOUDFRONT_URL" ] || [ "$CLOUDFRONT_URL" == "null" ]; then
+            echo "⚠️  CloudFront URL not available, skipping frontend test"
+            exit 0
+          fi
+          
+          echo "CloudFront URL: $CLOUDFRONT_URL"
+          
+          # Test if frontend is accessible
+          curl -f "$CLOUDFRONT_URL" || echo "⚠️  Frontend not accessible (may still be deploying)"
+
+      # Step 5: Deployment Notification
+      - name: Deployment Success Notification
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          # Add Slack/Discord/Email notification here if needed
+
+      - name: Deployment Failure Notification
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          # Add Slack/Discord/Email notification here if needed

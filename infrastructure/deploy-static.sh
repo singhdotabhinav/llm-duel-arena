@@ -2,6 +2,7 @@
 # Deploy static assets to S3 and invalidate CloudFront cache
 
 set -e
+set +H  # Disable history expansion to avoid issues with ! in paths
 
 ENVIRONMENT=${1:-dev}
 REGION=${2:-us-east-1}
@@ -46,15 +47,25 @@ echo "✅ Static assets uploaded!"
 # Invalidate CloudFront cache if distribution exists
 if [ -n "$CLOUDFRONT_ID" ]; then
   echo "🔄 Invalidating CloudFront cache..."
-  INVALIDATION_ID=$(aws cloudfront create-invalidation \
-    --distribution-id ${CLOUDFRONT_ID} \
+  echo "   Distribution ID: ${CLOUDFRONT_ID}"
+  # Temporarily disable exit on error for CloudFront invalidation
+  set +e
+  INVALIDATION_OUTPUT=$(aws cloudfront create-invalidation \
+    --distribution-id "${CLOUDFRONT_ID}" \
     --paths "/*" \
-    --region ${REGION} \
     --query 'Invalidation.Id' \
-    --output text)
+    --output text 2>&1)
+  INVALIDATION_EXIT_CODE=$?
+  set -e
   
-  echo "✅ CloudFront invalidation created: ${INVALIDATION_ID}"
-  echo "⏳ Cache invalidation may take 5-15 minutes to complete."
+  if [ $INVALIDATION_EXIT_CODE -eq 0 ] && [ -n "$INVALIDATION_OUTPUT" ] && [[ ! "$INVALIDATION_OUTPUT" =~ [Ee]rror ]]; then
+    echo "✅ CloudFront invalidation created: ${INVALIDATION_OUTPUT}"
+    echo "⏳ Cache invalidation may take 5-15 minutes to complete."
+  else
+    echo "⚠️  CloudFront invalidation failed or skipped"
+    echo "   Output: ${INVALIDATION_OUTPUT}"
+    echo "   This is non-critical - static assets are already deployed."
+  fi
 else
   echo "⚠️  CloudFront distribution ID not found. Skipping cache invalidation."
 fi

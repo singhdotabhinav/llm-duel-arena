@@ -24,13 +24,10 @@ provider "aws" {
 module "llm_duel_arena" {
   source = "../../modules/core"
 
-  aws_region           = var.aws_region
-  environment          = var.environment
-  project_name         = var.project_name
-  openai_api_key       = var.openai_api_key
-  google_client_id     = var.google_client_id
-  google_client_secret = var.google_client_secret
-  domain_name          = var.domain_name
+  aws_region  = var.aws_region
+  environment = var.environment
+  project_name = var.project_name
+  # Removed unused variables: openai_api_key, google_client_id, google_client_secret, domain_name
 }
 
 output "api_gateway_url" {

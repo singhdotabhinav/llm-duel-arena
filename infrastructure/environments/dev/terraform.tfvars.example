@@ -2,8 +2,8 @@ aws_region  = "us-east-1"
 environment = "dev"
 project_name = "llm-duel-arena"
 
-openai_api_key       = "sk-..."
-google_client_id     = "your-client-id.apps.googleusercontent.com"
-google_client_secret = "your-client-secret"
-
-domain_name = ""
+# Removed unused variables:
+# - openai_api_key (not used - using Ollama/HuggingFace)
+# - google_client_id (not used - using Cognito)
+# - google_client_secret (not used - using Cognito)
+# - domain_name (not purchased yet)

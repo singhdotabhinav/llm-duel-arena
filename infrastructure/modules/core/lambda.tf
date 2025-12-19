@@ -3,7 +3,7 @@ resource "aws_lambda_function" "game" {
   function_name = "${var.project_name}-game-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "game_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   timeout       = 30
   memory_size   = 512
 
@@ -24,15 +24,15 @@ resource "aws_lambda_function" "auth" {
   function_name = "${var.project_name}-auth-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "auth_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   timeout       = 15
   memory_size   = 256
 
   environment {
     variables = {
-      DYNAMODB_TABLE              = aws_dynamodb_table.users.name
-      ENVIRONMENT                 = var.environment
-      GOOGLE_CLIENT_ID_SECRET_ARN = aws_secretsmanager_secret.google_oauth.arn
+      DYNAMODB_TABLE  = aws_dynamodb_table.users.name
+      ENVIRONMENT     = var.environment
+      # Using Cognito for authentication - no Google OAuth needed
     }
   }
 
@@ -46,14 +46,14 @@ resource "aws_lambda_function" "llm" {
   function_name = "${var.project_name}-llm-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "llm_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   timeout       = 60
   memory_size   = 1024
 
   environment {
     variables = {
-      OPENAI_API_KEY_SECRET_ARN = aws_secretsmanager_secret.openai_api_key.arn
-      ENVIRONMENT               = var.environment
+      ENVIRONMENT = var.environment
+      # Using Ollama/HuggingFace for LLM - no OpenAI API key needed
     }
   }
 
